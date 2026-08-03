@@ -1,0 +1,18 @@
+{
+  "pourquoi": "Le §5.1 exige qu'un perimetre soit DECLARE et non deduit de la geometrie de collecte. Le defaut trouve le 3 aout : le denominateur etait decoupe par la boite englobante du telechargement OSM, et sept arretes du champ en sortaient sans que rien ne le dise. Un perimetre nomme, versionne et diffable rend ce decoupage explicite.",
+  "pourquoi_par_collectivite": "Une boite geographique est plus intuitive mais moins juste : testee sur la Sarthe, elle rate 4 arretes du departement et en attrape 1 de l'Orne. La collectivite emettrice est ce que la donnee porte, elle est auditable, et son evolution se lit dans un diff.",
+  "regle": "Aucun perimetre par defaut. L'outil echoue si le nom n'est pas fourni — choisir un perimetre est une decision, pas un reglage.",
+  "perimetres": {
+    "FRANCE": {
+      "libelle": "France entiere — tout le flux DiaLog",
+      "collectivites": "*",
+      "note": "C'est le perimetre des mesures du 2 et 3 aout 2026. Il est nomme pour que les runs anterieurs restent exprimables."
+    },
+    "SARTHE": {
+      "libelle": "Sarthe — zone de depart, decidee le 3 aout 2026",
+      "collectivites": ["Sarthe (département)"],
+      "note": "Le departement seul. Les communes sarthoises qui publient en propre n'apparaissent pas dans le flux au 31 juillet 2026 ; si elles arrivent, elles s'ajoutent ICI, et le diff le montre.",
+      "critere": "§6 — axe interurbain frequente, hors perimetre du decret. Un departement ne publie que de l'interurbain : 0 sur 170 de ses arretes qualifient du stationnement (§11.9)."
+    }
+  }
+}

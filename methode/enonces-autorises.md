@@ -79,7 +79,7 @@ même.
 > **La correction attendue est vers le bas.** Le mesuré est donc un chiffre dont
 > on sait qu'il est plutôt haut que bas, et cela s'énonce.
 
-## Les trois réserves, qui accompagnent le chiffre partout
+## Les quatre réserves, qui accompagnent le chiffre partout
 
 1. **L'épreuve à l'aveugle borne le risque de fausses absences *au niveau de
    l'arrêté*. Elle ne valide pas la comptabilité de couverture partielle, dont
@@ -89,6 +89,11 @@ même.
    de l'implémentation, pas la justesse de la mesure.**
 3. **Le désaccord géométrique entre DiaLog et OpenStreetMap n'est pas mesuré.**
    Le seul chiffre qui avait circulé était circulaire et a été retiré.
+4. **La complétude de DiaLog n'est pas établie, et le manque pousse le chiffre
+   VERS LE HAUT.** Hors du périmètre du décret du 24 mars 2026, le dépôt dans
+   DiaLog est **volontaire**. Un arrêté vivant absent du flux n'entre pas au
+   dénominateur — et il est très probablement absent d'OpenStreetMap aussi.
+   **L'inclure ferait donc monter le taux d'absence.**
 
 ---
 
@@ -106,7 +111,8 @@ même.
 
 - Rien sur l'**exactitude** des restrictions présentes : une voie limitée à 3,5 t
   et étiquetée `maxweight=19` compte comme couverte.
-- Rien sur la réglementation **non publiée** dans DiaLog.
+- Rien sur la réglementation **non publiée** dans DiaLog — et c'est la réserve 4,
+  pas une nuance de plus.
 - Rien sur OpenStreetMap **ailleurs qu'en France**, ni à une autre date.
 
 ---

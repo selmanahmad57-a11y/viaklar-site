@@ -278,10 +278,34 @@ def boites_disjointes(a, b):
 
 # ── chargement ───────────────────────────────────────────────────────────────
 
-def charger_dialog(chemin):
+def charger_perimetre(chemin, nom):
+    """Le périmètre est DÉCLARÉ, jamais déduit de la géométrie de collecte.
+
+    C'est la correction du défaut du 3 août : le dénominateur était découpé par
+    la boîte englobante du téléchargement OSM, et sept arrêtés du champ en
+    sortaient sans que rien ne le dise. Un périmètre nommé, versionné et
+    diffable rend ce découpage explicite.
+
+    Retourne None pour « tout le flux », sinon l'ensemble des collectivités.
+    """
+    registre = json.load(open(chemin, encoding="utf-8"))
+    exiger(
+        nom in registre["perimetres"],
+        f"Périmètre « {nom} » inconnu.\n"
+        f"Déclarés dans {chemin} : {', '.join(sorted(registre['perimetres']))}\n"
+        "Choisir un périmètre est une décision, pas un réglage : il n'y a pas "
+        "de valeur par défaut.",
+    )
+    p = registre["perimetres"][nom]
+    c = p["collectivites"]
+    return (None if c == "*" else set(c)), p["libelle"]
+
+
+def charger_dialog(chemin, collectivites=None):
     """Arrêtés du CHAMP : poids, tonnage lisible, géométrie, noEntry.
 
-    Aucun rejet n'est silencieux — règle 12 du §18.
+    `collectivites` restreint au périmètre déclaré. Les arrêtés hors périmètre
+    sont COMPTÉS, jamais écartés en silence — règle 12 du §18.
     """
     arretes = []
     operateurs = Counter()
@@ -306,6 +330,15 @@ def charger_dialog(chemin):
         if not tonnages:
             continue
         journal["ordres_avec_tonnage"] += 1
+
+        autorite_brute = ""
+        for source in element.iter(AUTHORITY):
+            for valeur in source.iter(NS_COM + "value"):
+                autorite_brute = autorite_brute or (valeur.text or "").strip()
+        if collectivites is not None and autorite_brute not in collectivites:
+            journal["hors_perimetre_declare"] += 1
+            element.clear()
+            continue
 
         restrictions = {(a.text or "").strip() for a in element.iter(ACCESS_TYPE)}
         if "noEntry" not in restrictions:
@@ -344,10 +377,7 @@ def charger_dialog(chemin):
             valeur = bloc.find(".//" + NS_COM + "value")
             if valeur is not None:
                 description = (valeur.text or "").strip()
-        autorite = ""
-        for source in element.iter(AUTHORITY):
-            for valeur in source.iter(NS_COM + "value"):
-                autorite = autorite or (valeur.text or "").strip()
+        autorite = autorite_brute
 
         arretes.append(
             {
@@ -498,6 +528,7 @@ def couverture_du_perimetre(arretes, voies, tolerance):
         "metres_couverts_par_extrait": dedans,
         "metres_hors_extrait": dehors,
         "part_couverte": dedans / total if total else 0.0,
+        "couverture_exacte": dehors == 0.0,
         "arretes_hors_extrait": sorted(hors_couverture, key=lambda x: -x["metres"]),
     }
 
@@ -744,6 +775,11 @@ def restituer(r, chemin):
         print(f"   {cle:38s} : {r['journal_rejets'][cle]}")
     print()
     p = r["populations"]
+    pe = r["perimetre"]
+    print(f"périmètre DÉCLARÉ                   : {pe['nom']} — {pe['libelle']}")
+    if pe["arretes_ecartes_hors_perimetre"]:
+        print(f"  écartés hors périmètre            : "
+              f"{pe['arretes_ecartes_hors_perimetre']} arrêtés")
     print(f"instantané OSM                      : {r['instantane_osm']}")
     print(f"population DANS LE CHAMP            : {p['dans_le_champ']}  arrêtés")
     print(f"  sans longueur exploitable         : {p['sans_longueur']}")
@@ -751,7 +787,17 @@ def restituer(r, chemin):
     c = r["couverture_du_perimetre"]
     print(f"périmètre déclaré                   : "
           f"{c['metres_perimetre_declare']/1000:9.1f} km")
-    print(f"  couvert par l'extrait OSM         : {c['part_couverte']:9.1%}"
+    # Un « 100,0 % » arrondi et un 100 % exact ne disent pas la même chose, et
+    # c'est le nombre le plus persuasif du tableau. On ne l'écrit rond que
+    # lorsqu'il l'est ; sinon on descend jusqu'à la décimale qui le distingue.
+    part = c["part_couverte"]
+    if c["metres_hors_extrait"] == 0:
+        rendu = "100 % (exact)"
+    elif round(100 * part, 1) >= 100.0:
+        rendu = f"{part:.4%} (arrondi à 100 %, ne l'est pas)"
+    else:
+        rendu = f"{part:.1%}"
+    print(f"  couvert par l'extrait OSM         : {rendu}"
           f"   ({c['metres_hors_extrait']/1000:.1f} km hors extrait)")
     for x in c["arretes_hors_extrait"][:5]:
         print(f"     {x['autorite'][:22]:22s} {x['metres']:7.0f} m"
@@ -802,7 +848,7 @@ def main():
         len(sys.argv) >= 4,
         "Usage : python3 outils/mesure-metrique.py <dialog.xml> <osm.json> "
         "<rapport.json> <pas_test> <pas_dedup> <tolerance> <ang_max> "
-        "<ecart_negligeable> <couverture_min>",
+        "<ecart_negligeable> <couverture_min> <service_si_tonnage> <perimetre>",
     )
     par = {
         "pas_test": parametre(
@@ -825,6 +871,15 @@ def main():
             "Écart de cap maximal. Sépare une voie du pont qu'elle franchit.\n"
             "Attention : le resserrement de 45° à 30° avait fait disparaître\n"
             "trois faux positifs ET huit candidates (§18).",
+        ),
+        "perimetre": parametre(
+            "MESURE_PERIMETRE", 11,
+            "Nom du périmètre déclaré, défini dans docs/perimetres.json.\n"
+            "Le périmètre se DÉCLARE, il ne se déduit pas de la géométrie de\n"
+            "collecte — c'est la correction du défaut du 3 août, où sept arrêtés\n"
+            "du champ sortaient du dénominateur par la boîte englobante du\n"
+            "téléchargement OSM, sans que rien ne le dise.",
+            str,
         ),
         "service_si_tonnage": parametre(
             "MESURE_SERVICE_SI_TONNAGE", 10,
@@ -850,7 +905,14 @@ def main():
     }
     chemin_rapport = sys.argv[3]
 
-    arretes, operateurs, journal = charger_dialog(sys.argv[1])
+    registre_perimetres = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "docs", "perimetres.json",
+    )
+    collectivites, libelle_perimetre = charger_perimetre(
+        registre_perimetres, par["perimetre"]
+    )
+    arretes, operateurs, journal = charger_dialog(sys.argv[1], collectivites)
     inattendus = {op: n for op, n in operateurs.items() if op != OPERATEUR_ATTENDU}
     exiger(
         not inattendus,
@@ -889,6 +951,13 @@ def main():
         },
         "parametres": par,
         "journal_rejets": dict(journal),
+        "perimetre": {
+            "nom": par["perimetre"],
+            "libelle": libelle_perimetre,
+            "collectivites": "*" if collectivites is None else sorted(collectivites),
+            "arretes_ecartes_hors_perimetre": journal.get("hors_perimetre_declare", 0),
+            "note": "DÉCLARÉ, jamais déduit de la géométrie de collecte (§5.1)",
+        },
         "populations": {
             "dans_le_champ": len(arretes),
             "sans_longueur": journal.get("rejet_sans_longueur", 0),

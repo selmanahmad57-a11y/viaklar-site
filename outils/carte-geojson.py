@@ -167,6 +167,11 @@ def main():
                 "mais une réimplémentation de la même spécification : leur accord "
                 "démontre la fidélité de l'implémentation, pas la justesse de la "
                 "mesure.",
+                "La completude de DiaLog n'est PAS etablie, et le manque pousse "
+                "le chiffre VERS LE HAUT : hors du perimetre du decret du 24 mars "
+                "2026 le depot est volontaire, et un arrete vivant absent du flux "
+                "n'entre pas au denominateur alors qu'il est tres probablement "
+                "absent d'OSM aussi.",
                 "La tolérance d'appariement décide de 2,3 points sur la plage "
                 "10-50 m. En dessous, la pente s'emballe d'un facteur dix, ce qui "
                 "reste inexpliqué : le desaccord geometrique entre DiaLog et OSM "
