@@ -27,6 +27,8 @@ n'ont pas établi que **la restriction existe sur le terrain**.
 >
 > **Dans tous ces cas le mètre est compté réglementé alors qu'il ne l'est plus.**
 
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %. Ce mode de défaillance reste le
+> seul que l'appareil ne peut pas voir seul.
 **C'est le seul mode de défaillance qui pousse 89,6 % vers le bas, et l'appareil
 ne peut pas le voir seul : les deux sources qu'il compare sont documentaires.**
 
@@ -99,6 +101,9 @@ commercial crée — appliquée au seul endroit où elle peut mordre.
 | Résultat | Ce qu'il établit |
 |---|---|
 | **15 sites, 0 défaillance** | Borne haute de **20 %** sur le taux d'arrêtés fantômes (règle de trois, 3/15) |
+> **⚠ Valeurs RÉTRACTÉES** (§18.bis). Sous l'attribution corrigée, le point de
+> départ est **89,4 %** et un taux de fantômes de 20 % le porterait à **87,2 %**.
+> Le raisonnement — même ordre que l'amplitude du balayage — est inchangé.
 | Effet d'un tel taux sur le chiffre | **89,6 % → 87,3 %** — même ordre que l'amplitude du balayage de tolérance |
 | **1 défaillance** | La borne monte ; l'échantillon reste une borne |
 | **2 défaillances ou plus** | **ARRÊT.** L'échantillon devient une estimation, pas une borne, et il est trop petit pour ça. On replanifie avec un effectif calculé |

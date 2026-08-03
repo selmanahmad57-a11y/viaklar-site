@@ -3,17 +3,44 @@
 **[viaklar.com](https://viaklar.com)** — les arrêtés français d'interdiction de tonnage,
 confrontés un par un à OpenStreetMap.
 
+## ⚠ Chiffres corrigés le 3 août 2026
+
+**Les valeurs publiées jusqu'ici — 2 194 km, 89,6 %, 74,5 %, 2 051 arrêtés — sont
+RÉTRACTÉES.** Un arrêté DiaLog porte de 1 à 8 régulations — circulation,
+stationnement, sens unique, vitesse — chacune avec ses propres critères **et sa
+propre géométrie**. Le chargeur lisait les tonnages et les géométries à la portée
+de l'**arrêté** au lieu de la **régulation**, et attribuait à la circulation ce
+qui appartenait au stationnement.
+
+| | avant | après |
+|---|---:|---:|
+| dénominateur dédupliqué | 2 194,4 km | **2 060,3 km** |
+| taux métrique | 89,553 5 % | **89,430 1 %** |
+| taux par arrêté | 74,500 2 % | **74,634 1 %** |
+| arrêtés mesurés | 2 051 | **2 050** |
+
+*(colonne « avant » : valeurs rétractées — [methode/retractations.json](methode/retractations.json))*
+
+**Deux choses qui se disent ensemble :** la correction est réelle et se publie avec
+la même visibilité qu'une hausse ; et elle est **immatérielle au regard des
+réserves** — 0,123 point, contre 2,313 pour l'amplitude du balayage de tolérance et
+± 5,0 pour l'erreur d'échantillonnage.
+
+**Et le nombre à ne jamais citer :** le calcul bouge de 0,123 point, l'affichage de
+0,2, parce que 89,553 5 et 89,430 1 tombent de part et d'autre d'une frontière
+d'arrondi. **« La correction vaut 0,2 point » est faux.**
+
 ## Le chiffre
 
-> **Au 3 août 2026, sur les 2 194 kilomètres de voirie française couverts par un
-> arrêté d'interdiction de tonnage publié dans DiaLog, 89,6 % ne portent dans
+> **Au 3 août 2026, sur les 2 060 kilomètres de voirie française couverts par un
+> arrêté d'interdiction de tonnage publié dans DiaLog, 89,4 % ne portent dans
 > OpenStreetMap aucune restriction applicable aux poids lourds.**
 
-**74,5 % des 2 051 arrêtés n'y sont pas repris du tout.** Deux chiffres différents
+**74,6 % des 2 050 arrêtés n'y sont pas repris du tout.** Deux chiffres différents
 parce qu'ils comptent deux choses différentes — un arrêté régit de 10 m à 52,7 km,
-et le 1 % le plus long porte 22,4 % du linéaire.
+et le 1 % le plus long porte 22,6 % du linéaire.
 
-**Ce chiffre s'accompagne de trois réserves, sans exception.** Elles sont dans
+**Ce chiffre s'accompagne de quatre réserves, sans exception.** Elles sont dans
 [methode/enonces-autorises.md](methode/enonces-autorises.md), qui dit aussi ce qui
 ne se dit jamais.
 

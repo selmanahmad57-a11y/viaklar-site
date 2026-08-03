@@ -121,6 +121,9 @@ géodésiques, formule de haversine, rayon 6 371 000 m.
 | | |
 |---|---|
 | Arrêtés de circulation portant du poids | **2 052** |
+> **⚠ Le compte de 2 051 est RÉTRACTÉ** (§18.bis) : 2 050 sous l'attribution
+> corrigée, et 2 051 ordres portent un tonnage dans une régulation `noEntry` —
+> deux quantités différentes que ce même nombre a longtemps désignées.
 | dont géolocalisés avec une longueur non nulle | **2 051** (le dernier est un point isolé) |
 | Segments de polyligne | **77 406** |
 | **Longueur cumulée, doublons compris** | **2 484,2 km** |
@@ -313,6 +316,8 @@ pas s'appuyer sur ces chiffres.
 ### 3.4 bis — Ce que l'épreuve aveugle valide du nouveau chiffre, et ce qu'elle ne valide pas
 
 **L'épreuve aveugle du 2 août validait le 71,2 %. Elle ne valide pas entièrement le
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %. La mise en garde de ce paragraphe
+> est inchangée, et elle vient de se vérifier.
 89,6 %, et reporter sa caution serait un abus.**
 
 Les deux mesures posent des questions différentes. On a demandé aux vérificateurs :
@@ -530,6 +535,9 @@ commande. **Ils sont vérifiés à la main avant que leurs verdicts entrent dans
 | | |
 |---|---|
 | Vérificateurs aveugles, 140 points | **128 NON — 91,4 %** (±5,0 pt à 95 %) |
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %, donc écart +2,0 points au lieu de
+> +1,9, toujours CONCORDANT. **138 des 140 points restent dans le champ corrigé** ;
+> les 2 sortants sont à Brest.
 | Comptabilité de couverture, réseau entier | **89,6 %** |
 | **Écart** | **+1,9 point — CONCORDANT** |
 
@@ -591,6 +599,8 @@ ni des vérificateurs qui héritent de cette tolérance ne peuvent y répondre.
 > prédiction de générosité de conception (§3.4 i), datée et réfutable, et rien d'autre.
 > **La phrase qui l'accompagne se réécrit en conséquence**, et elle est plus courte :
 >
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %. La citation qui suit reste juste
+> mot pour mot : elle porte sur le statut de plancher, pas sur la valeur.
 > *« 89,6 % n'est pas établi comme un plancher. Le biais de conception de l'outil est la
 > générosité, ce qui rend probable — sans le démontrer — que le vrai chiffre soit plus
 > haut. Aucune mesure ne l'établit à ce jour. »*
@@ -604,6 +614,8 @@ on peut chiffrer ce qu'elle décide** — le générateur prend soixante-douze s
 |---|---|---|---|---|
 | **10 m** | 1 991,7 | **90,8 %** | 77,6 % | 9,9 % |
 | 20 m | 1 975,3 | 90,0 % | 76,2 % | 10,2 % |
+> **⚠ Tableau RÉTRACTÉ** (§18.bis) — mesuré sous l'attribution défectueuse.
+> Le balayage rejoué donne 90,7 / 89,9 / **89,4** / 88,9 / 88,4 % de 10 à 50 m.
 | **30 m** — retenu | 1 965,2 | **89,6 %** | 74,5 % | 11,6 % |
 | 50 m | 1 941,7 | **88,5 %** | 70,8 % | 14,9 % |
 
@@ -635,6 +647,8 @@ restait sans contrôle :**
 
 **Ce que cela autorise à écrire, et pas davantage :**
 
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %, et l'amplitude vaut 2,313 points
+> sous l'attribution corrigée. L'énoncé du plancher est inchangé.
 > *89,6 % est vraisemblablement un plancher. Le seul paramètre non contrôlé — la tolérance
 > d'appariement — décide de 2,3 points au plus sur une plage de 1 à 5, et son resserrement
 > fait monter le taux ; les deux attributions manifestement fausses de l'échantillon
@@ -658,6 +672,9 @@ une courbe qui monte encore au bord n'a pas montré son plateau.** Balayage éte
 | **5 m** | **91,7 %** | +2,18 | **−0,501** |
 | 10 m | 90,8 % | +1,21 | −0,195 |
 | 20 m | 90,0 % | +0,46 | −0,075 |
+> **⚠ Colonne RÉTRACTÉE** (§18.bis). Balayage rejoué sous l'attribution corrigée :
+> 90,7 % à 10 m, 89,9 % à 20 m, **89,4 % à 30 m**, 88,9 % à 40 m, 88,4 % à 50 m.
+> Amplitude **2,313 points** — la réserve tient.
 | 30 m | 89,6 % | 0,00 | −0,046 |
 | 50 m | 88,5 % | −1,07 | −0,054 |
 
@@ -911,9 +928,15 @@ de l'outil existant. **Sensibilité mesurée sur le réseau entier :**
 | | |
 |---|---|
 | Linéaire couvert reposant sur `access` / `motor_vehicle` **seul** | **26,5 km — 11,6 % du couvert** |
+> **⚠ Valeurs RÉTRACTÉES** (§18.bis). Sous l'attribution corrigée : 23,6 km de
+> couvert par `access`/`motor_vehicle` seul (10,9 %), taux 89,4 %, taux à preuve
+> de tonnage seule 90,6 %.
 | Taux d'absence, définition pré-inscrite | **89,6 %** |
 | Taux si **seule la preuve de tonnage** comptait | **90,8 %** |
 
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %. La règle énoncée ici — on ne
+> change pas une définition après avoir vu ce qu'elle donne — est ce qui a rendu
+> la correction du soir publiable sans discussion.
 > **Le chiffre principal reste 89,6 %** : la définition était pré-inscrite, et on ne la
 > change pas après avoir vu ce qu'elle donne. **La sensibilité se publie à côté**, et elle
 > est bornée à 1,2 point.
@@ -1006,6 +1029,8 @@ recherche molle.**
 
 > **Si le biais de conception est la générosité, les fautes restantes — celles qui n'ont
 > pas encore été trouvées — sont probablement du même côté. Le risque résiduel est que
+> **⚠ 89,6 % est RÉTRACTÉ** (§18.bis) — 89,4 %. Le sens de ce paragraphe est
+> renforcé, pas affaibli : la correction est allée vers le bas, comme annoncé.
 > 89,6 % soit encore un peu trop bas, pas trop haut.**
 >
 > C'est inconfortable à écrire quand on publie un chiffre déjà élevé, et c'est la raison de
@@ -1141,6 +1166,9 @@ seule passe manuelle avait produit les meilleures trouvailles.**
 | Artefact | Avant | Après |
 |---|---|---|
 | **Titre de la carte** | *« Plus de sept interdictions sur dix… »* — un compte d'arrêtés | *« Neuf kilomètres sur dix de voirie interdite… »* — l'unité déclarée |
+> **⚠ Les valeurs 89,6 % et 74,5 % de ce tableau sont RÉTRACTÉES** (§18.bis).
+> Elles valent 89,4 % et 74,6 %. Le choix d'unité que ce tableau documente est
+> inchangé.
 | **Chiffre-clé** | 71,2 % des arrêtés | **89,6 % des kilomètres**, avec **74,5 % des arrêtés** à côté |
 | **Légende** | ACCORD / ÉCART / COUVERT_FAIBLE — des verdicts de comparaison | **ABSENT / MARGINAL / PARTIEL / COUVERT** — des classes de couverture |
 | **Infobulle** | un verdict binaire | mètres réglementés, mètres sans restriction, part couverte |
@@ -1149,6 +1177,9 @@ seule passe manuelle avait produit les meilleures trouvailles.**
 | **Générateur** | **aucun** — script jetable perdu | [carte-geojson.py](../outils/carte-geojson.py), qui importe la mesure au lieu de la refaire |
 
 **Ce que le réénoncé a coûté, et qu'il fallait payer :** le geojson passe de 2 045 à
+> **⚠ Le compte de 2 051 entités est RÉTRACTÉ** (§18.bis) : il en reste 2 050 sous
+> l'attribution corrigée. Le raisonnement de ce paragraphe — le dénominateur cesse
+> d'être découpé par la collecte — tient entièrement.
 **2 051 entités**. Les six de différence sont les arrêtés que l'ancienne emprise excluait
 sans le dire (§0). **Le dénominateur cesse d'être découpé par la collecte.**
 

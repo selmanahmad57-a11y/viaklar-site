@@ -18,8 +18,15 @@ docs/unite-preinscrite.md, et porte sur chacune :
   etat                                 le verdict binaire, conservé en second
 
 Les deux se publient ensemble ou pas du tout (§3.3) : publier le seul taux par
-arrêté était défendable tant qu'on ignorait la distribution des longueurs ; le
-1 % le plus long porte 22,4 % des mètres, et ce n'est plus le cas.
+arrêté était défendable tant qu'on ignorait la distribution des longueurs, et ce
+n'est plus le cas — le centile le plus long porte une part du linéaire hors de
+proportion avec son effectif.
+
+**Cette part se CALCULE ici, elle ne se récite pas.** Elle valait 22,4 % et vaut
+22,6 % depuis la correction d'attribution du 3 août ; la phrase qui la portait
+était en dur et a survécu intacte au déplacement. Un générateur dont une part de
+la sortie n'est pas reconstructible est exactement le défaut que ce fichier
+existe pour empêcher — et il vivait dedans.
 
 Usage :
     python3 outils/carte-geojson.py <dialog.xml> <osm.json> <sortie.geojson> \\
@@ -36,6 +43,11 @@ VOISIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mesure-metriq
 _spec = importlib.util.spec_from_file_location("_mesure", VOISIN)
 mesure = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(mesure)
+
+# Part de tête servant à dire la faiblesse de l'unité « arrêté ». Nommée parce
+# qu'elle décide du nombre publié : « le 1 % le plus long » et « le 5 % le plus
+# long » ne disent pas la même chose de la même donnée.
+CENTILE = 0.01
 
 # Seuils de qualification de l'état, en fraction de couverture. Ce ne sont pas
 # des seuils de mesure — la mesure est continue — mais des classes d'affichage,
@@ -126,6 +138,13 @@ def main():
             }
         )
 
+    # La faiblesse de l'unité « arrêté » se CALCULE, elle ne se récite pas.
+    longueurs = sorted((d["metres"] for d in detail), reverse=True)
+    mesure.exiger(longueurs, "Aucun arrêté : la faiblesse de l'unité n'a pas de sens.")
+    centile = max(1, round(len(longueurs) * CENTILE))
+    total_metres = sum(longueurs)
+    part_du_centile = 100.0 * sum(longueurs[:centile]) / total_metres
+
     m, a = resultat["metrique"], resultat["par_arrete"]
     sortie = {
         "type": "FeatureCollection",
@@ -154,9 +173,19 @@ def main():
                 "total": a["total"],
                 "absents": a["absents"],
                 "taux": a["taux"],
-                "faiblesse": "donne le même poids à 86 m de rue communale et à "
-                "52,7 km de départementale ; le 1 % le plus long porte 22,4 % "
-                "des mètres",
+                # Cette phrase portait « 86 m », « 52,7 km » et « 22,4 % » EN
+                # DUR. Trois nombres écrits dans une prose que le générateur
+                # réémet sans les recalculer : le 3 août, l'attribution de
+                # portée a déplacé le 22,4 en 22,6 et la phrase a survécu
+                # intacte. C'est le défaut que ce fichier existe pour empêcher —
+                # un artefact publié dont une part n'est pas reconstructible —
+                # et il vivait dans le fichier lui-même.
+                "faiblesse": (
+                    f"donne le même poids à {min(longueurs):.0f} m de rue "
+                    f"communale et à {max(longueurs)/1000:.1f} km de "
+                    f"départementale ; le 1 % le plus long porte "
+                    f"{part_du_centile:.1f} % des mètres"
+                ).replace(".", ","),
             },
             "couverture_du_perimetre": couverture,
             "reserves": [

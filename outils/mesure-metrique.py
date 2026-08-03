@@ -19,7 +19,11 @@ Ce que ce fichier NE FAIT PAS, et c'est délibéré :
     (§0 — sept arrêtés avaient disparu ainsi, l'un par 37,9 m) ;
   - il ne compte pas de sommets. Le rééchantillonnage à pas constant est ce qui
     neutralise la densité de numérisation (§1 — la mesure dite « pondérée par la
-    longueur » était une fraction de sommets).
+    longueur » était une fraction de sommets) ;
+  - il ne lit AUCUN attribut à la portée de l'arrêté. Un arrêté est un
+    conteneur : il porte de 1 à 8 régulations, et lire un tonnage ou une
+    géométrie à son niveau attribue à la circulation ce qui appartient au
+    stationnement (§18.bis — le défaut trouvé le 3 août, corrigé ici).
 
 Usage :
     python3 outils/mesure-metrique.py <dialog.xml> <osm.json> <rapport.json> \\
@@ -50,6 +54,7 @@ NS_COM = "{http://datex2.eu/schema/3/common}"
 NS_DX = "{https://raw.githubusercontent.com/MTES-MCT/dialog/main/docs/spec/datex2}"
 
 ORDER = NS_TR + "trafficRegulationOrder"
+REGULATION = NS_TR + "trafficRegulation"
 GEOMETRY = NS_DX + "geoJsonGeometry"
 WEIGHT = NS_COM + "grossWeightCharacteristic"
 OPERATOR = NS_COM + "comparisonOperator"
@@ -306,6 +311,27 @@ def charger_dialog(chemin, collectivites=None):
 
     `collectivites` restreint au périmètre déclaré. Les arrêtés hors périmètre
     sont COMPTÉS, jamais écartés en silence — règle 12 du §18.
+
+    **La portée de lecture est la RÉGULATION, jamais l'ordre.** Un
+    `trafficRegulationOrder` porte de 1 à 8 `trafficRegulation` — circulation,
+    stationnement, sens unique, vitesse — chacune avec ses propres critères ET
+    sa propre géométrie. Les trois lectures ci-dessous se faisaient sur l'ordre
+    entier jusqu'au 3 août 2026 :
+
+        for caracteristique in element.iter(WEIGHT):    # element = l'ORDRE
+        for geometrie in element.iter(GEOMETRY):        # element = l'ORDRE
+        restrictions = {a.text for a in element.iter(ACCESS_TYPE)}
+
+    Elles attribuaient à la circulation ce qui appartenait au stationnement.
+    Le balayage de portée (outils/balayer-portees.py) donne l'ampleur : sur
+    1 020 ordres à plusieurs régulations, **826 portent des géométries
+    DIFFÉRENTES d'une régulation à l'autre**.
+
+    Effet mesuré sur le chiffre publié — §18.bis :
+    Ces deux valeurs de gauche sont RÉTRACTÉES — docs/retractations.json,
+    entree attribution-portee.
+        dénominateur   2 194,4 km  ->  2 060,3 km   (−134,1 km)
+        taux métrique     89,55 %  ->     89,43 %   (−0,123 point)
     """
     arretes = []
     operateurs = Counter()
@@ -315,19 +341,45 @@ def charger_dialog(chemin, collectivites=None):
             continue
         journal["ordres_lus"] += 1
 
+        # LA PORTÉE. Tout ce qui suit se lit DANS ces régulations, jamais
+        # dans l'ordre qui les contient.
+        regulations = [
+            regulation
+            for regulation in element.findall(REGULATION)
+            if any(
+                (marque.text or "").strip() == "noEntry"
+                for marque in regulation.iter(ACCESS_TYPE)
+            )
+        ]
+        if not regulations:
+            journal["hors_champ_stationnement_ou_vitesse"] += 1
+            element.clear()
+            continue
+
+        # Ce compteur est le témoin du défaut : il vaut ce que la lecture à la
+        # portée de l'ordre aurait ramassé en trop. À zéro, les deux lectures
+        # coïncident ; il ne doit jamais redevenir invisible.
+        poids_total = sum(1 for _ in element.iter(WEIGHT))
+        poids_en_champ = sum(len(list(r.iter(WEIGHT))) for r in regulations)
+        if poids_total > poids_en_champ:
+            journal["tonnages_hors_regulation_noentry"] += poids_total - poids_en_champ
+
         tonnages = []
-        for caracteristique in element.iter(WEIGHT):
-            operateurs[caracteristique.findtext(OPERATOR)] += 1
-            brut = caracteristique.findtext(TONNAGE)
-            if brut is None:
-                journal["rejet_tonnage_illisible"] += 1
-                continue
-            valeur = float(brut)
-            if abs(valeur * 2 - round(valeur * 2)) > EPSILON_PAS_TONNAGE:
-                journal["rejet_tonnage_hors_pas"] += 1
-                continue
-            tonnages.append(valeur)
+        for regulation in regulations:
+            for caracteristique in regulation.iter(WEIGHT):
+                operateurs[caracteristique.findtext(OPERATOR)] += 1
+                brut = caracteristique.findtext(TONNAGE)
+                if brut is None:
+                    journal["rejet_tonnage_illisible"] += 1
+                    continue
+                valeur = float(brut)
+                if abs(valeur * 2 - round(valeur * 2)) > EPSILON_PAS_TONNAGE:
+                    journal["rejet_tonnage_hors_pas"] += 1
+                    continue
+                tonnages.append(valeur)
         if not tonnages:
+            journal["rejet_noentry_sans_tonnage"] += 1
+            element.clear()
             continue
         journal["ordres_avec_tonnage"] += 1
 
@@ -340,30 +392,32 @@ def charger_dialog(chemin, collectivites=None):
             element.clear()
             continue
 
-        restrictions = {(a.text or "").strip() for a in element.iter(ACCESS_TYPE)}
-        if "noEntry" not in restrictions:
-            journal["hors_champ_stationnement_ou_vitesse"] += 1
-            element.clear()
-            continue
+        geometries_total = sum(1 for _ in element.iter(GEOMETRY))
+        geometries_en_champ = sum(len(list(r.iter(GEOMETRY))) for r in regulations)
+        if geometries_total > geometries_en_champ:
+            journal["geometries_hors_regulation_noentry"] += (
+                geometries_total - geometries_en_champ
+            )
 
         lignes = []
         points_seuls = 0
-        for geometrie in element.iter(GEOMETRY):
-            try:
-                objet = json.loads(geometrie.text)
-            except (json.JSONDecodeError, TypeError):
-                journal["rejet_geometrie_illisible"] += 1
-                continue
-            if objet.get("type") == "Point":
-                points_seuls += 1
-            for ligne in polylignes(objet):
-                propres = [
-                    (float(p[0]), float(p[1]))
-                    for p in ligne
-                    if isinstance(p, list) and len(p) >= 2
-                ]
-                if len(propres) >= 2:
-                    lignes.append(propres)
+        for regulation in regulations:
+            for geometrie in regulation.iter(GEOMETRY):
+                try:
+                    objet = json.loads(geometrie.text)
+                except (json.JSONDecodeError, TypeError):
+                    journal["rejet_geometrie_illisible"] += 1
+                    continue
+                if objet.get("type") == "Point":
+                    points_seuls += 1
+                for ligne in polylignes(objet):
+                    propres = [
+                        (float(p[0]), float(p[1]))
+                        for p in ligne
+                        if isinstance(p, list) and len(p) >= 2
+                    ]
+                    if len(propres) >= 2:
+                        lignes.append(propres)
         if points_seuls:
             journal["geometries_ponctuelles_sans_longueur"] += points_seuls
         if not lignes:

@@ -49,15 +49,32 @@
     font:13px/1.7 ui-sans-serif,system-ui,sans-serif;color:var(--doux)}
   .maplibregl-popup-content{font:14px/1.5 ui-sans-serif,system-ui,sans-serif;padding:.8rem .9rem;max-width:300px}
   .maplibregl-popup-content b{display:block;margin-bottom:.3rem}
+
+  /* Le bandeau de rétractation est aussi visible que le chiffre qu'il corrige.
+     Le discret aurait été un demi-mensonge. */
+  .retractation{background:#fff4e5;border-left:.35rem solid #c25e00;
+    padding:.9rem 1.1rem;margin:0 0 1.4rem;border-radius:.25rem;
+    font-size:.95rem;line-height:1.55}
+  .retractation b{color:#8a4200}
+  @media (prefers-color-scheme:dark){
+    .retractation{background:#2a1c0c;border-left-color:#e08a3c}
+    .retractation b{color:#f0a95c}}
 </style>
 </head>
 <body>
 <div class="enveloppe">
 
   <!-- L'unité est le MÈTRE de voirie, pas l'arrêté : un arrêté régit de 10 m à
-       52,7 km, et le 1 % le plus long porte 22,4 % du linéaire. Les deux chiffres
+       52,7 km, et le centile le plus long porte une part du linéaire hors de
+       proportion avec son effectif — la valeur exacte vient du geojson. Les deux chiffres
        sont affichés ensemble — publier le seul compte par arrêté était défendable
        tant qu'on ignorait cette distribution. -->
+  <!-- Bandeau de rétractation. Il est VIDE dans la page et rempli depuis
+       docs/retractations.json : une rétractation corrigée au registre se
+       corrige ici, et une rétractation oubliée ici est impossible. C'est le
+       même motif que les réserves — les données portent, la page rend. -->
+  <div id="retractations"></div>
+
   <h1>Neuf kilomètres sur dix de voirie interdite aux poids lourds n’existent pas dans OpenStreetMap</h1>
   <p class="chapeau"><b id="m-km">…</b> kilomètres de voirie française placés sous arrêté d’interdiction
   de tonnage, confrontés mètre par mètre à la carte que la plupart des GPS utilisent.
@@ -217,6 +234,28 @@ carte.addControl(new maplibregl.AttributionControl({compact:true}));
 
 carte.on('load', async () => {
   const fc = await (await fetch('arretes-tonnage.geojson')).json();
+
+  // Les rétractations, lues au registre. Une baisse se publie avec la même
+  // visibilité qu'une hausse — et le seul moyen que ce soit vrai le jour où
+  // c'est gênant est que la page n'ait pas le choix.
+  try {
+    const reg = await (await fetch('retractations.json')).json();
+    const a = (reg.retractations || []).filter(e => e.afficher_sur_la_carte);
+    if (a.length) {
+      const bloc = document.getElementById('retractations');
+      bloc.innerHTML = a.map(e =>
+        '<div class="retractation"><b>⚠ ' + e.titre_public + '</b><br>' +
+        e.texte_public + '</div>').join('');
+    }
+  } catch (err) {
+    // Le registre absent ne doit pas emporter la carte, mais il doit se VOIR :
+    // une rétractation silencieusement non affichée est exactement ce que ce
+    // bloc existe pour empêcher.
+    const bloc = document.getElementById('retractations');
+    if (bloc) bloc.innerHTML = '<div class="retractation"><b>⚠ Le registre des '
+      + 'rétractations n\'a pas pu être chargé.</b><br>Les chiffres de cette '
+      + 'page peuvent avoir été corrigés sans que la correction s\'affiche.</div>';
+  }
 
   const n = {ABSENT:0, MARGINAL:0, PARTIEL:0, COUVERT:0};
   for (const f of fc.features) {
