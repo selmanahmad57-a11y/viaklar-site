@@ -154,9 +154,14 @@
 
     <p id="reserve" hidden style="border-left:3px solid var(--ecart);padding:.6rem .9rem;margin-top:1rem;
        background:color-mix(in srgb, var(--ecart) 8%, transparent);font-size:14px"></p>
+    <!-- Deux estimateurs de la même borne. On publie le plus CONSERVATEUR, et on
+         nomme l'autre : le remplacer par 13,9 % serait un mouvement favorable non
+         contraint. Les faire cohabiter sans le dire était l'écart trouvé le 3 août. -->
     <p class="encadre">Vingt vérifications sans erreur bornent le risque d’une contamination systématique
-    à environ 15 %. Elles ne le suppriment pas. La méthode complète, ses limites et ses trois biais
-    résiduels sont documentés publiquement.</p>
+    à <strong>15 %</strong> — approximation conservatrice par la règle de trois ; <strong>13,9 %</strong>
+    par Clopper-Pearson, qui est l’estimateur exact. Nous publions le plus prudent des deux.
+    Elles ne suppriment pas le risque. La méthode complète, ses limites et ses
+    <strong>quatre</strong> réserves sont documentées publiquement.</p>
   </section>
 
   <section>
@@ -173,6 +178,12 @@
     <a href="https://www.data.gouv.fr/datasets/base-de-donnees-nationale-de-la-reglementation-de-circulation">data.gouv.fr</a>.
     Comparaison et fond de carte : <strong>© les contributeurs OpenStreetMap</strong>, ODbL —
     tuiles <a href="https://openfreemap.org/">OpenFreeMap</a> © OpenMapTiles.
+    <span id="fraicheur">Vérifié le 2026-08-03.</span>
+    <!-- TÉMOIN EXTERNE. Écrit par outils/tamponner-enonces.py, appelé en intégration
+         continue. Il était sur la page de méthode, où personne n'arrive : un témoin
+         placé hors du chemin du lecteur n'est plus un témoin. -->
+    Si cette date a plus de quelques semaines, les contrôles automatiques ne tournent
+    plus et rien de ce qui précède n’est vérifié.<br>
     Données de la mesure et outil de comparaison dans le dépôt du projet.
     <strong>La chaîne n’est pas encore rejouable de bout en bout</strong> : voir la réserve ci-dessus.
   </div>

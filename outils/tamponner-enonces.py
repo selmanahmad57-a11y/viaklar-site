@@ -31,8 +31,17 @@ def main():
     chemin, jour = sys.argv[1], sys.argv[2]
     date.fromisoformat(jour)          # échoue bruyamment sur une date malformée
     s = open(chemin, encoding="utf-8").read()
-    neuf, n = re.subn(r"> \*\*Vérifié le \d{4}-\d{2}-\d{2}\.\*\*",
-                      f"> **Vérifié le {jour}.**", s)
+    # Deux formes, une par page : le markdown de la méthode et le pied de la carte.
+    # Le témoin doit vivre là où le lecteur ARRIVE, pas seulement là où il
+    # chercherait s'il savait qu'il existe.
+    for motif, remplacement in (
+        (r"> \*\*Vérifié le \d{4}-\d{2}-\d{2}\.\*\*", f"> **Vérifié le {jour}.**"),
+        (r'(<span id="fraicheur">)Vérifié le \d{4}-\d{2}-\d{2}\.',
+         rf'\1Vérifié le {jour}.'),
+    ):
+        neuf, n = re.subn(motif, remplacement, s)
+        if n == 1:
+            break
     if n != 1:
         sys.exit(f"Horodatage introuvable ou multiple ({n}) dans {chemin}.\n"
                  "Le témoin externe doit exister et être unique.")
