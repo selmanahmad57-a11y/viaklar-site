@@ -1,0 +1,14 @@
+{
+  "pourquoi": "Une date ne tient que si quelque chose se publie quand elle passe. Sinon c'est un souhait. Ce fichier porte l'etat de la campagne ; outils/verifier-campagne.py echoue quand une date est depassee sans que l'etat ait ete mis a jour, et l'echec est visible en integration continue. L'incompletude devient donc publiable, ce qui donne un cout a la date.",
+  "regle_de_publication": "Toute etape en retard fait publier « campagne incomplete — borne conditionnelle a la portion parcourue », avec la meme visibilite que le chiffre. C'est la contre-mesure du §4.bis appliquee au calendrier.",
+  "borne": "3 / (0,75 x sites_visites) = 4 / sites_visites. Portee NATIONALE au 20e site seulement.",
+  "etapes": [
+    {"id": "lyon",       "libelle": "Grappe 1 — Lyon",              "sites": 6,  "avant_le": "2026-08-14", "visites": 0, "defaillances": 0, "fait": false},
+    {"id": "aix",        "libelle": "Grappe 2 — Aix-Marseille",     "sites": 3,  "avant_le": "2026-08-21", "visites": 0, "defaillances": 0, "fait": false},
+    {"id": "disperses1", "libelle": "Dispersés, première moitié",   "sites": 5,  "avant_le": "2026-09-13", "visites": 0, "defaillances": 0, "fait": false},
+    {"id": "disperses2", "libelle": "Dispersés, derniers",          "sites": 6,  "avant_le": "2026-09-30", "visites": 0, "defaillances": 0, "fait": false},
+    {"id": "publication","libelle": "Publication du résultat terrain","sites": 0, "avant_le": "2026-10-15", "visites": 0, "defaillances": 0, "fait": false}
+  ],
+  "note_sur_la_derniere_etape": "C'est elle qui fait tenir les autres. Sans publication datee, les quatre premieres lignes sont des intentions.",
+  "note_sur_les_six_derniers": "Les cinq premiers disperses achetent 3,3 points ; les six derniers 1,3 point ET la totalite de la portee nationale. Ils ne sont pas achetes pour de la precision mais pour le droit d'ecrire « France » — profil exact de ce qu'on abandonne : le plus couteux, le moins rentable, et le seul dont depend l'enonce."
+}

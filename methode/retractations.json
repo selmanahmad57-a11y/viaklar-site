@@ -1,0 +1,217 @@
+{
+  "pourquoi": "Un nombre rétracté ne se supprime pas, il se MARQUE. La suppression est silencieuse — c'est la règle 12 du §18 appliquée aux chiffres au lieu des enregistrements. Un chiffre effacé d'un document, et dont la raison ne vit que dans un message de commit, garantit ce qui s'est produit le 3 août : le nombre survit dans la tête de qui l'a écrit, la rétractation non. Ici la rétractation vit là où le nombre vit.",
+  "usage": "outils/verifier-retractations.py balaye le dépôt et signale toute occurrence d'une valeur rétractée qui n'est pas accompagnée de sa marque.",
+  "retractations": [
+    {
+      "id": "absence-51",
+      "valeurs": [
+        "51,1 %",
+        "51.1 %",
+        "50,4 %"
+      ],
+      "vivait": "§9 — taux d'absence sarthois",
+      "retracte_le": "2026-08-02",
+      "motif": "La « correction » de 75,6 % à 51,1 % était elle-même l'erreur : 23 des 24 points venaient de access=private compté sur des escaliers et des chemins piétons. La vraie valeur est 71-77 % selon la méthode.",
+      "remplace_par": "77,0 % en Sarthe, 71,2 % au national par arrêté, 89,6 % en mètres"
+    },
+    {
+      "id": "conflits-cinquantaine",
+      "valeurs": [
+        "une cinquantaine de conflits",
+        "cinquantaine de conflits"
+      ],
+      "vivait": "§14 — accroche de presse",
+      "retracte_le": "2026-08-02",
+      "motif": "Décompte construit sur un appariement au plus proche, invalidé par l'exigence de recouvrement réciproque.",
+      "remplace_par": "aucun décompte dans le titre — le titre porte un taux"
+    },
+    {
+      "id": "r9-huit",
+      "valeurs": [
+        "huit contradictions",
+        "8 contradictions",
+        "14 contradictions"
+      ],
+      "vivait": "§4 et §9 — règle R9",
+      "retracte_le": "2026-08-02",
+      "motif": "Le recouvrement était calculé en max(A→B, B→A), ce qui laissait un tronçon de 14 m adjacent à une voie de 472 m marquer 100 %. Avec le recouvrement réciproque (min), R9 rend zéro.",
+      "remplace_par": "R9 rend 0 après réfutation"
+    },
+    {
+      "id": "ecarts-sarthe-trois",
+      "valeurs": [
+        "trois faux écarts",
+        "3 écarts sarthois"
+      ],
+      "vivait": "§9 — écarts de la Sarthe",
+      "retracte_le": "2026-08-02",
+      "motif": "La Flèche est passée de ÉCART à ACCORD (la bonne route était la D 10, way 75034109, en accord exact) ; 836 et 837 sont passés à ABSENT, aucune voie n'atteignant le seuil de recouvrement.",
+      "remplace_par": "0 écart en Sarthe"
+    },
+    {
+      "id": "plancher-deplacement",
+      "valeurs": [
+        "8,53 m",
+        "8.53 m",
+        "plancher de 10 m",
+        "p95 8,53",
+        "2 165 m",
+        "10,5 m au maximum"
+      ],
+      "vivait": "§4 — plancher de déplacement ; puis §9 — plancher de tolérance ; puis lettre au LWG",
+      "retracte_le": "2026-08-02",
+      "motif": "CIRCULAIRE. nearest(lat, lon) mesure la distance à UNE route, pas à LA route désignée : la valeur est bornée par la densité du réseau, pas par la qualité des tracés. Six tentatives, toutes circulaires ou trop grossières.",
+      "remplace_par": "aucune valeur — le plancher de déplacement n'est pas mesuré et exige le corpus de vérité terrain du §10",
+      "recidive": "Rétracté le 2 août, reparu le 3 août comme plancher de tolérance, inscrit au registre des invariantes, et invoqué pour disqualifier une amplitude de 4,76 points. C'est le cas qui a imposé ce fichier."
+    },
+    {
+      "id": "national-preliminaire",
+      "valeurs": [
+        "1 462",
+        "71,5 %",
+        "381 —",
+        "73,8 %",
+        "14,5 %"
+      ],
+      "vivait": "§9 — mesure nationale, passe préliminaire",
+      "retracte_le": "2026-08-03",
+      "motif": "Calculés sur 35 268 voies OSM avant rattrapage de deux lots échoués. Jamais réémis après récupération.",
+      "remplace_par": "1 457 / 71,2 % / 385 / 73,6 % / 14,6 %, sur 35 643 voies"
+    },
+    {
+      "id": "trois-quarts",
+      "valeurs": [
+        "les trois quarts",
+        "trois quarts des interdictions"
+      ],
+      "vivait": "§14 et carte publique — titre",
+      "retracte_le": "2026-08-03",
+      "motif": "« Les trois quarts » annonce 75 % pour un chiffre mesuré à 71,2 %.",
+      "remplace_par": "« neuf kilomètres sur dix », sur la mesure métrique"
+    },
+    {
+      "id": "trois-methodes",
+      "valeurs": [
+        "trois méthodes indépendantes",
+        "Trois méthodes indépendantes"
+      ],
+      "vivait": "§9 — convergence sarthoise",
+      "retracte_le": "2026-08-03",
+      "motif": "Elles sont deux. Le 74,1 % partage son numérateur avec le 77,0 % — c'est le même ABSENT à quatre cas près — et son étiquette « couverts faibles reclassés » est fausse, il n'y en a aucun en Sarthe.",
+      "remplace_par": "deux méthodes, avec la troisième ligne marquée non indépendante"
+    },
+    {
+      "id": "denominateur-sans-definition",
+      "valeurs": [
+        "2 045 n'a pas de définition",
+        "1 989",
+        "3 332",
+        "2 081"
+      ],
+      "vivait": "§9 — audit du dénominateur",
+      "retracte_le": "2026-08-03",
+      "motif": "Faux. L'outil du dépôt reproduit 2 045 en trente-trois secondes et imprime sa définition. Mes trois comptes venaient d'un script jetable qui mésinterprétait les GeometryCollection — et je n'avais pas exécuté l'original.",
+      "remplace_par": "2 045 = arrêtés de circulation géolocalisés dans l'emprise OSM ; puis 2 051 sous la définition pré-inscrite, périmètre déclaré"
+    },
+    {
+      "id": "guideline-cartes-2d",
+      "valeurs": [
+        "Horizontal Map Layers tranche",
+        "la guideline tranche"
+      ],
+      "vivait": "§5 — analyse ODbL",
+      "retracte_le": "2026-08-03",
+      "motif": "La Horizontal Map Layers se déclare « primarily relates to making and publicly publishing visual 2D maps ». L'appliquer à une API de données vendue est hors de son périmètre. Erreur née d'un résumé pris pour la source.",
+      "remplace_par": "Collective Database Guideline, endossée 2016-06-17, qui traite des bases de données"
+    },
+    {
+      "id": "fusion-memoire-protege",
+      "valeurs": [
+        "la fusion en mémoire protège",
+        "jamais matérialisée protège"
+      ],
+      "vivait": "§4 et §5 — défense ODbL",
+      "retracte_le": "2026-08-03",
+      "motif": "L'ODbL définit l'Extraction comme « permanent OR TEMPORARY transfer to another medium ». La RAM est un médium. La réserve sur l'interaction réseau est attachée à Convey seul.",
+      "remplace_par": "la pureté des dérivées : les observations n'entrent jamais dans une structure dérivée d'OSM"
+    },
+    {
+      "id": "meta-retractation-dans-la-retractation",
+      "valeurs": [
+        "par trois méthodes"
+      ],
+      "vivait": "ROADMAP.md — DANS LE TABLEAU DES RÉTRACTATIONS lui-même",
+      "retracte_le": "2026-08-03",
+      "motif": "« Trois méthodes indépendantes » avait été rétracté le matin même — elles sont deux, le 74,1 % partageant son numérateur avec le 77,0 %. La formule a survécu dans la ligne qui consignait la rétractation d'un AUTRE chiffre.",
+      "remplace_par": "« par deux méthodes »",
+      "pourquoi_ce_cas_est_ici": "C'est la meilleure illustration du problème que ce fichier résout, et elle vaut mieux qu'une note explicative. Une rétractation vivait dans la ligne qui en consignait une autre : l'auteur relisait un tableau de corrections et n'a pas vu que la correction elle-même était périmée. Aucune vigilance ne rattrape ça — seul un balayage automatique le fait."
+    }
+  ],
+  "marqueurs": {
+    "version": 2,
+    "modifie_le": "2026-08-03",
+    "pourquoi_versionnee": "Le compte « N nues » n'est interprétable qu'avec la liste qui l'a produit. C'est l'invariante 15 du §18 appliquée à un détecteur : un critère assoupli jusqu'à ce que les fausses alertes cessent laisse aussi passer les vraies. La version doit donc être citée avec le compte, comme la définition l'est avec une grandeur.",
+    "historique": [
+      {
+        "version": 1,
+        "le": "2026-08-03",
+        "motif": "liste initiale",
+        "termes_ajoutes": [
+          "rétract",
+          "retract",
+          "RETIRÉE",
+          "retirée",
+          "retiré le",
+          "circulaire",
+          "⚠",
+          "préliminaire",
+          "non recalculé",
+          "faux",
+          "fausse",
+          "abandonné",
+          "suspendu",
+          "pour mémoire",
+          "withdrawn",
+          "obsolète"
+        ]
+      },
+      {
+        "version": 2,
+        "le": "2026-08-03",
+        "motif": "ASSOUPLISSEMENT. Quatre cas sains signalés à tort — des tableaux de rétractation qui disaient « erreur », « corrigé » ou « prétendait » sans employer le mot « rétracté ». Un détecteur qui crie sur des cas sains finit désactivé, ce qui est pire qu'un détecteur large. Mais le prix est réel : un nombre voisinant par hasard le mot « erreur » passe désormais.",
+        "termes_ajoutes": [
+          "erreur",
+          "corrigé",
+          "prétendait",
+          "était l'erreur",
+          "ce qu'il est",
+          "qui était pire"
+        ]
+      }
+    ],
+    "termes": [
+      "rétract",
+      "retract",
+      "RETIRÉE",
+      "retirée",
+      "retiré le",
+      "circulaire",
+      "⚠",
+      "préliminaire",
+      "non recalculé",
+      "faux\\b",
+      "fausse\\b",
+      "abandonné",
+      "suspendu",
+      "pour mémoire",
+      "withdrawn",
+      "obsolète",
+      "erreur",
+      "corrigé",
+      "prétendait",
+      "était l'erreur",
+      "ce qu'il est",
+      "qui était pire"
+    ]
+  }
+}

@@ -1,0 +1,152 @@
+[
+ {
+  "cas": 1,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Circulation limitation poids rue Georges Messier"
+ },
+ {
+  "cas": 2,
+  "attendu": "OUI",
+  "classe": "accord",
+  "arrete": "Gosnay_08_2003"
+ },
+ {
+  "cas": 3,
+  "attendu": "OUI",
+  "classe": "accord",
+  "arrete": "LYON_2009RP01072"
+ },
+ {
+  "cas": 4,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "BORDEAUX_201015722"
+ },
+ {
+  "cas": 5,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Ruelle_06_2005"
+ },
+ {
+  "cas": 6,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Pujaut_30131"
+ },
+ {
+  "cas": 7,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Circulation rue Voltaire"
+ },
+ {
+  "cas": 8,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Saint-Jean-de-Luz_2006-48"
+ },
+ {
+  "cas": 9,
+  "attendu": "OUI",
+  "classe": "accord",
+  "arrete": "Arrêté portant interdiction de circulation et de stationnement des véhicules don"
+ },
+ {
+  "cas": 10,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "99-309 - Limitation de tonnage >3,5T - MONTLAUR"
+ },
+ {
+  "cas": 11,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Limitation Poids – RTE DU VERGOZ"
+ },
+ {
+  "cas": 12,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Reims_2020P0299"
+ },
+ {
+  "cas": 13,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "LYON_2009RP08717"
+ },
+ {
+  "cas": 14,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "LYON_2009RP02357"
+ },
+ {
+  "cas": 15,
+  "attendu": "OUI",
+  "classe": "accord",
+  "arrete": "LYON_2009RP11548"
+ },
+ {
+  "cas": 16,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "23 - Interdiction 7,5t - Sablé"
+ },
+ {
+  "cas": 17,
+  "attendu": "OUI",
+  "classe": "accord",
+  "arrete": "LYON_2009RP01065"
+ },
+ {
+  "cas": 18,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Annecy-23_04_2014_SEY_A2014_270"
+ },
+ {
+  "cas": 19,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Limitation Poids – RUE ALFONSE PENAUD"
+ },
+ {
+  "cas": 20,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Circulation rue Mahmoud Darwich"
+ },
+ {
+  "cas": 21,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Vitrolles_96_195"
+ },
+ {
+  "cas": 22,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Saint_Chamas_01_2024"
+ },
+ {
+  "cas": 23,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "Gratentour_2013-98"
+ },
+ {
+  "cas": 24,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "LYON_2009RP11800"
+ },
+ {
+  "cas": 25,
+  "attendu": "NON",
+  "classe": "absent",
+  "arrete": "BORDEAUX_200802192"
+ }
+]

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restrictions de tonnage : ce que les arrêtés disent, ce que les cartes en savent</title>
+<!-- Aucun chiffre ici : une balise meta n'est pas calculable au chargement, donc
+     tout nombre qu'on y écrit devient faux à la première mesure rejouée. -->
+<meta name="description" content="Les arrêtés français de restriction de tonnage confrontés un par un à OpenStreetMap.">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  :root{
+    --fond:#faf9f7; --encre:#1a1a1a; --doux:#6b6b6b; --trait:#e0ddd8; --carte-fond:#fff;
+    --absent:#c0392b; --accord:#2d7a4f; --ecart:#b8860b; --faible:#8a8a8a;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --fond:#141414; --encre:#ececec; --doux:#9a9a9a; --trait:#2e2e2e; --carte-fond:#1c1c1c;
+           --absent:#e0574a; --accord:#4fae7c; --ecart:#d4a53a; --faible:#7e7e7e; }
+  }
+  :root[data-theme="dark"]{ --fond:#141414; --encre:#ececec; --doux:#9a9a9a; --trait:#2e2e2e;
+    --carte-fond:#1c1c1c; --absent:#e0574a; --accord:#4fae7c; --ecart:#d4a53a; --faible:#7e7e7e; }
+  :root[data-theme="light"]{ --fond:#faf9f7; --encre:#1a1a1a; --doux:#6b6b6b; --trait:#e0ddd8;
+    --carte-fond:#fff; --absent:#c0392b; --accord:#2d7a4f; --ecart:#b8860b; --faible:#8a8a8a; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--fond);color:var(--encre);
+    font:16px/1.6 ui-serif,Georgia,'Times New Roman',serif}
+  .enveloppe{max-width:1100px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+  h1{font-size:clamp(1.7rem,4vw,2.6rem);line-height:1.18;margin:0 0 .6rem;letter-spacing:-.01em}
+  .chapeau{font-size:1.12rem;color:var(--doux);max-width:62ch;margin:0 0 2rem}
+  .chiffre{display:flex;flex-wrap:wrap;gap:2.5rem;align-items:baseline;
+    padding:1.5rem 0;border-top:1px solid var(--trait);border-bottom:1px solid var(--trait);margin-bottom:2rem}
+  .chiffre b{font-size:clamp(2.4rem,7vw,3.6rem);font-weight:600;line-height:1;letter-spacing:-.02em;
+    font-family:ui-sans-serif,system-ui,sans-serif}
+  .chiffre span{font-size:.95rem;color:var(--doux);max-width:34ch}
+  #carte{height:min(70vh,620px);border:1px solid var(--trait);border-radius:6px;background:var(--carte-fond)}
+  .legende{display:flex;flex-wrap:wrap;gap:.4rem 1.4rem;margin:1rem 0 0;
+    font:14px/1.5 ui-sans-serif,system-ui,sans-serif;color:var(--doux)}
+  .legende i{display:inline-block;width:22px;height:4px;border-radius:2px;margin-right:.45rem;
+    vertical-align:middle}
+  section{margin-top:3rem;max-width:68ch}
+  h2{font-size:1.25rem;margin:0 0 .7rem;letter-spacing:-.005em}
+  p{margin:0 0 1rem}
+  .encadre{border-left:3px solid var(--trait);padding:.2rem 0 .2rem 1.1rem;color:var(--doux)}
+  table{border-collapse:collapse;width:100%;font:14px/1.5 ui-sans-serif,system-ui,sans-serif;margin:1rem 0}
+  th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--trait);vertical-align:top}
+  th{font-weight:600;color:var(--doux);font-size:13px}
+  .pied{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--trait);
+    font:13px/1.7 ui-sans-serif,system-ui,sans-serif;color:var(--doux)}
+  .maplibregl-popup-content{font:14px/1.5 ui-sans-serif,system-ui,sans-serif;padding:.8rem .9rem;max-width:300px}
+  .maplibregl-popup-content b{display:block;margin-bottom:.3rem}
+</style>
+</head>
+<body>
+<div class="enveloppe">
+
+  <!-- L'unité est le MÈTRE de voirie, pas l'arrêté : un arrêté régit de 10 m à
+       52,7 km, et le 1 % le plus long porte 22,4 % du linéaire. Les deux chiffres
+       sont affichés ensemble — publier le seul compte par arrêté était défendable
+       tant qu'on ignorait cette distribution. -->
+  <h1>Neuf kilomètres sur dix de voirie interdite aux poids lourds n’existent pas dans OpenStreetMap</h1>
+  <p class="chapeau"><b id="m-km">…</b> kilomètres de voirie française placés sous arrêté d’interdiction
+  de tonnage, confrontés mètre par mètre à la carte que la plupart des GPS utilisent.
+  Mesure du <b id="d-mesure">…</b>.</p>
+
+  <div class="chiffre">
+    <div><b id="taux-absence">…</b></div>
+    <span>des kilomètres réglementés ne portent dans OpenStreetMap aucune restriction
+    applicable aux poids lourds.
+    <b id="taux-arrete">…</b> des arrêtés n’y sont <em>pas repris du tout</em> —
+    deux chiffres différents parce qu’ils comptent deux choses différentes,
+    et le cas de Cassel plus bas montre pourquoi.</span>
+  </div>
+
+  <div id="carte"></div>
+  <div class="legende">
+    <span><i style="background:var(--absent)"></i>Rien dans OSM — <b id="n-absent">…</b></span>
+    <span><i style="background:var(--ecart)"></i>Moins d’un dixième couvert — <b id="n-marginal">…</b></span>
+    <span><i style="background:var(--faible)"></i>Partiellement couvert — <b id="n-partiel">…</b></span>
+    <span><i style="background:var(--accord)"></i>Entièrement couvert — <b id="n-couvert">…</b></span>
+  </div>
+
+  <section>
+    <h2>Ce que cette carte montre, et ce qu’elle ne montre pas</h2>
+    <p>Elle cartographie <strong>des arrêtés</strong> — des actes administratifs pris par des communes,
+    des intercommunalités et des conseils départementaux, publiés en données ouvertes par le service
+    DiaLog de l’État. Chaque tracé est une restriction de tonnage en vigueur.</p>
+    <p>La couleur indique le résultat d’une <strong>comparaison datée</strong> avec OpenStreetMap :
+    l’arrêté trouve-t-il, à cet endroit, une restriction correspondante dans la carte ?
+    Ce n’est pas un jugement sur la voie, et ce n’est pas une liste d’erreurs.</p>
+    <p class="encadre">Le constat n’est pas « OpenStreetMap se trompe » mais
+    « OpenStreetMap ne sait pas ». Les désaccords de valeur se comptent en dizaines ;
+    les kilomètres sans rien, en milliers.</p>
+  </section>
+
+  <section>
+    <h2>Un cas qui explique tout le reste : Cassel</h2>
+    <!-- Ce cas remplace une décomposition en gradient et concentration que
+         personne ne lit jusqu'au bout. Un lecteur comprend la divergence en dix
+         secondes ; le même lecteur décroche à la deuxième ligne d'une
+         décomposition statistique. -->
+    <p>L’arrêté « Traversée de Cassel interdite aux véhicules… » régit
+    <strong>43,6 kilomètres</strong> de voirie. OpenStreetMap porte bien une restriction de
+    tonnage sur cette emprise — <strong>sur 0,7 % de sa longueur</strong>.</p>
+
+    <table>
+      <tr><th>Question posée</th><th>Réponse</th><th>Juste ?</th></tr>
+      <tr><td>Cet arrêté est-il repris dans OpenStreetMap ?</td>
+          <td><strong>Oui</strong>, une restriction existe</td><td>oui</td></tr>
+      <tr><td>Quelle part de son emprise est reprise ?</td>
+          <td><strong>0,7 %</strong> — 99,3 % ne l’est pas</td><td>oui</td></tr>
+    </table>
+
+    <p><strong>Aucun des deux verdicts n’est faux.</strong> Ils répondent à deux questions
+    différentes, et c’est pourquoi compter les arrêtés et compter les kilomètres ne peut pas
+    donner le même chiffre. Un conducteur de poids lourd, lui, ne roule pas sur des arrêtés :
+    il roule sur les 43,3 kilomètres où rien n’est écrit.</p>
+  </section>
+
+  <section>
+    <h2>La lacune n’est pas locale</h2>
+    <p>On pourrait croire à un défaut de couverture régional. La mesure dit le contraire :
+    sur un groupe témoin indépendant — des voies faisant l’objet d’un arrêté pour un tout autre motif —
+    <strong>90 % n’ont aucune voie porteuse d’un tonnage à moins de 100 mètres</strong>.
+    La rareté du tonnage est une propriété générale de la carte, pas une particularité des endroits mesurés.</p>
+  </section>
+
+  <section>
+    <h2>Comment le chiffre a été obtenu</h2>
+    <table>
+      <tr><th>Unité</th><td><strong>Le mètre de chaussée sous arrêté</strong>, dédupliqué : une portion
+        visée par deux arrêtés compte une fois. L’unité a été choisie et écrite <em>avant</em> d’exécuter
+        la mesure, parce qu’un arrêté régit de 10 m à 52,7 km et que le 1 % le plus long porte 22,4 %
+        du linéaire — compter des actes et compter des kilomètres ne peut pas donner le même chiffre.</td></tr>
+      <tr><th>Périmètre</th><td>Les <b id="m-total">…</b> arrêtés d’<em>interdiction de circuler</em>
+        géolocalisés du flux DiaLog. Le périmètre est <em>déclaré</em>, jamais déduit de l’extrait
+        OpenStreetMap : celui-ci en couvre <b id="m-couverture">…</b>, et le défaut est publié plutôt
+        que retranché du dénominateur.</td></tr>
+      <tr><th>Méthode</th><td>Chaque emprise est rééchantillonnée tous les <b id="m-pas">…</b> mètres —
+        ce qui neutralise la densité de numérisation — puis chaque point est apparié à une voie
+        carrossable portant une restriction, sous <b id="m-tolerance">…</b> mètres et à moins de
+        <b id="m-cap">…</b> degrés d’écart de direction. Instantané OpenStreetMap du
+        <b id="m-instantane">…</b>.</td></tr>
+      <tr><th>Vérification</th><td>140 points tirés au hasard <em>uniformément en longueur</em>, classés
+        à l’aveugle par cinq vérificateurs indépendants interrogeant OpenStreetMap eux-mêmes, sans
+        connaître le résultat attendu. Leur estimation — <strong>91,4 %</strong> — concorde avec la
+        mesure à 1,9 point près, pour un intervalle d’échantillonnage de ±5,0.</td></tr>
+      <tr><th>Ce que la vérification ne dit pas</th><td>Les vérificateurs appliquent la même règle que
+        le programme. Leur accord démontre que le calcul fait ce qui est écrit, <strong>pas que ce qui
+        est écrit soit la bonne question</strong>. Deux attributions à 15 et 17 mètres ont été
+        confirmées par l’humain comme par la machine, et disparaissent toutes deux si l’on resserre
+        la tolérance à 10 mètres.</td></tr>
+    </table>
+
+    <p id="reserve" hidden style="border-left:3px solid var(--ecart);padding:.6rem .9rem;margin-top:1rem;
+       background:color-mix(in srgb, var(--ecart) 8%, transparent);font-size:14px"></p>
+    <p class="encadre">Vingt vérifications sans erreur bornent le risque d’une contamination systématique
+    à environ 15 %. Elles ne le suppriment pas. La méthode complète, ses limites et ses trois biais
+    résiduels sont documentés publiquement.</p>
+  </section>
+
+  <section>
+    <h2>Pourquoi cela compte pour un conducteur de poids lourd</h2>
+    <p>Un itinéraire calculé sur une carte qui ignore une interdiction y conduit le véhicule.
+    Le conducteur découvre la restriction sur place, fait demi-tour quand c’est possible, et
+    reste responsable de l’infraction quoi qu’ait dit l’appareil.</p>
+    <p>Ces arrêtés sont publics, gratuits et lisibles par une machine. Le rapprochement présenté ici
+    a été fait en une journée.</p>
+  </section>
+
+  <div class="pied">
+    Arrêtés : <strong>DiaLog / DGITM</strong>, Licence Ouverte 2.0 —
+    <a href="https://www.data.gouv.fr/datasets/base-de-donnees-nationale-de-la-reglementation-de-circulation">data.gouv.fr</a>.
+    Comparaison et fond de carte : <strong>© les contributeurs OpenStreetMap</strong>, ODbL —
+    tuiles <a href="https://openfreemap.org/">OpenFreeMap</a> © OpenMapTiles.
+    Données de la mesure et outil de comparaison dans le dépôt du projet.
+    <strong>La chaîne n’est pas encore rejouable de bout en bout</strong> : voir la réserve ci-dessus.
+  </div>
+</div>
+
+<script>
+// Les quatre classes viennent du geojson (metadata.classes_affichage) ; la page
+// n'en connaît que les couleurs. Ajouter une classe côté générateur ne demande
+// donc pas de toucher à ce fichier.
+const teinte = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const COULEUR = {
+  ABSENT:   teinte('--absent') || '#c0392b',
+  MARGINAL: teinte('--ecart')  || '#b8860b',
+  PARTIEL:  teinte('--faible') || '#8a8a8a',
+  COUVERT:  teinte('--accord') || '#2d7a4f'
+};
+
+const carte = new maplibregl.Map({
+  container: 'carte',
+  style: 'https://tiles.openfreemap.org/styles/positron',
+  center: [2.55, 46.6], zoom: 4.9, attributionControl: false
+});
+carte.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+carte.addControl(new maplibregl.AttributionControl({compact:true}));
+
+carte.on('load', async () => {
+  const fc = await (await fetch('arretes-tonnage.geojson')).json();
+
+  const n = {ABSENT:0, MARGINAL:0, PARTIEL:0, COUVERT:0};
+  for (const f of fc.features) {
+    const e = f.properties.etat;
+    if (e in n) n[e]++;
+    f.properties.couleur = COULEUR[e] || COULEUR.PARTIEL;
+  }
+
+  // Aucun chiffre n'est écrit dans la page : tout vient du geojson, qui porte
+  // ses propres métadonnées. Une mesure rejouée met la page à jour d'elle-même.
+  // Sans cela, la légende bougerait et le gros chiffre resterait — deux valeurs
+  // contradictoires sur la même page, sans que rien ne le signale.
+  const m = fc.metadata || {};
+  const total = fc.features.length;
+  const nb  = v => v == null ? '—' : Number(v).toLocaleString('fr-FR');
+  const jour = v => v == null ? '—'
+    : new Date(v).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
+  const pose = (id, valeur) => { const e = document.getElementById(id); if (e) e.textContent = valeur; };
+
+  const pct = v => v == null ? '—'
+    : (100 * v).toLocaleString('fr-FR', {minimumFractionDigits:1, maximumFractionDigits:1}) + ' %';
+  const P = m.mesure_principale || {}, Q = m.mesure_secondaire || {};
+
+  for (const [id, v] of Object.entries(
+        {'n-absent':n.ABSENT, 'n-marginal':n.MARGINAL, 'n-partiel':n.PARTIEL, 'n-couvert':n.COUVERT}))
+    pose(id, nb(v));
+
+  pose('m-km',           nb(Math.round((P.metres_total || 0) / 1000)));
+  pose('d-mesure',       jour(m.instantane_osm));
+  pose('taux-absence',   pct(P.taux));
+  pose('taux-arrete',    pct(Q.taux));
+  pose('m-total',        nb(Q.total));
+  pose('m-instantane',   jour(m.instantane_osm));
+  pose('m-tolerance',    nb((m.parametres || {}).tolerance_m));
+  pose('m-pas',          nb((m.parametres || {}).pas_test));
+  pose('m-cap',          nb((m.parametres || {}).ang_max));
+  pose('m-couverture',   pct((m.couverture_du_perimetre || {}).part_couverte));
+
+  // Les chiffres de l'épreuve aveugle ne sont plus posés : la section
+  // « Vérification » les décrit en prose, avec ce qu'ils ne prouvent pas.
+  // Une pose sans cible ne lève pas d'erreur — elle se tait, ce qui est pire.
+
+  // Les réserves vivent dans les données, pas dans la page : chacune disparaîtra
+  // d'elle-même le jour où elle sera levée dans le geojson. Toute clé commençant
+  // par « reserve » ou nommée « reproductibilite » est affichée, sans que la page
+  // ait à connaître leur liste — une réserve ajoutée demain s'affichera seule.
+  const reserves = [].concat(m.reserves || [], m.ce_que_le_chiffre_ne_dit_pas || []);
+  if (reserves.length) {
+    const r = document.getElementById('reserve');
+    r.innerHTML = reserves.map(t => '⚠ Réserve — ' + t).join('<br><br>');
+    r.hidden = false;
+  }
+
+  // La définition du dénominateur s'affiche à côté du chiffre qu'elle définit :
+  // une grandeur dérivée transporte sa définition, ou elle ne se publie pas.
+  if (m.definition) {
+    const d = document.createElement('p');
+    d.style.cssText = 'font-size:13px;color:var(--doux);margin:.6rem 0 0';
+    d.textContent = 'Unité pré-inscrite avant mesure — ' + m.definition
+      + ' · ' + (P.unite || '') + ' ; en second, ' + (Q.unite || '') + '.';
+    document.getElementById('reserve').insertAdjacentElement('beforebegin', d);
+  }
+
+  carte.addSource('arretes', {type:'geojson', data:fc});
+  carte.addLayer({ id:'traces', type:'line', source:'arretes',
+    filter:['==', ['geometry-type'], 'LineString'],
+    paint:{ 'line-color':['get','couleur'],
+            'line-width':['interpolate',['linear'],['zoom'],5,1.4,10,3,16,6],
+            'line-opacity':0.85 }});
+  carte.addLayer({ id:'points', type:'circle', source:'arretes',
+    filter:['==', ['geometry-type'], 'Point'],
+    paint:{ 'circle-color':['get','couleur'],
+            'circle-radius':['interpolate',['linear'],['zoom'],5,2.5,12,6],
+            'circle-opacity':0.85 }});
+
+  const popup = new maplibregl.Popup({closeButton:true, maxWidth:'320px'});
+  for (const couche of ['traces','points']) {
+    carte.on('mouseenter', couche, () => carte.getCanvas().style.cursor = 'pointer');
+    carte.on('mouseleave', couche, () => carte.getCanvas().style.cursor = '');
+    carte.on('click', couche, (e) => {
+      const p = e.features[0].properties;
+      popup.setLngLat(e.lngLat).setHTML(
+        `<b>${p.description || 'Arrêté sans description'}</b>
+         Interdiction au-delà de <strong>${p.tonnage_t} t</strong>${p.autorite ? ' · ' + p.autorite : ''}<br>
+         ${Math.round(p.metres).toLocaleString('fr-FR')} m réglementés, dont
+         <strong>${Math.round(p.metres_absents).toLocaleString('fr-FR')} m</strong> sans restriction dans OSM<br>
+         <span style="color:${p.couleur}">${p.etat_libelle} — ${(100*p.couverture).toFixed(1).replace('.',',')} % couvert</span>`
+      ).addTo(carte);
+    });
+  }
+});
+</script>
+</body>
+</html>
