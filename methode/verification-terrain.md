@@ -151,6 +151,23 @@ dise lequel produit quelle cellule.
 > *« Clopper-Pearson partout parce que c'est le seul estimateur qui couvre les
 > cinq cellules »* — écrit **avant** que ce soit « Clopper-Pearson partout » tout
 > court, et avant qu'aucun résultat ne soit connu.
+
+### Deux couches, et ne jamais les confondre
+
+| Couche | Règle |
+|---|---|
+| **Choix de l'estimateur** | sur sa **COUVERTURE** — Clopper-Pearson, défini pour `k > 0` là où la règle de trois ne l'est pas |
+| **Publication** | **afficher les DEUX** quand ils diffèrent |
+
+> **Le motif n'est jamais « le plus prudent gagne ».** Une première version de la
+> page publique l'avait écrit ainsi, et c'était **une seconde règle capable
+> d'annuler la première** : à trois ambigus, le conservateur serait la règle de
+> trois, et l'invoquer là ferait rentrer le mélange retiré le matin même.
+>
+> **Et une politique de toujours prendre le prudent est un biais systématique.**
+> C'est la décision du §3.4 j prise dans l'autre sens : le plancher n'est pas
+> l'affirmation, parce que **sous-déclarer par règle reste une erreur par
+> règle.**
 >
 > La règle de trois n'était pas fausse : c'est une **approximation conservatrice**
 > de Clopper-Pearson à `k = 0`. On perd du conservatisme et on gagne un estimateur

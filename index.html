@@ -154,12 +154,18 @@
 
     <p id="reserve" hidden style="border-left:3px solid var(--ecart);padding:.6rem .9rem;margin-top:1rem;
        background:color-mix(in srgb, var(--ecart) 8%, transparent);font-size:14px"></p>
-    <!-- Deux estimateurs de la même borne. On publie le plus CONSERVATEUR, et on
-         nomme l'autre : le remplacer par 13,9 % serait un mouvement favorable non
-         contraint. Les faire cohabiter sans le dire était l'écart trouvé le 3 août. -->
+    <!-- DEUX COUCHES SÉPARÉES, et ne jamais les confondre.
+         1. Le choix de l'estimateur se fait sur sa COUVERTURE : Clopper-Pearson,
+            parce qu'il est défini pour k > 0 là où la règle de trois ne l'est pas.
+         2. La publication AFFICHE LES DEUX quand ils diffèrent.
+         Le motif n'est pas « le prudent gagne ». Une politique de toujours prendre
+         le prudent est un biais systématique — sous-déclarer par règle reste une
+         erreur par règle — et elle pourrait servir à réintroduire la règle de trois
+         dans les tables où sa couverture est insuffisante. -->
     <p class="encadre">Vingt vérifications sans erreur bornent le risque d’une contamination systématique
-    à <strong>15 %</strong> — approximation conservatrice par la règle de trois ; <strong>13,9 %</strong>
-    par Clopper-Pearson, qui est l’estimateur exact. Nous publions le plus prudent des deux.
+    à <strong>15 %</strong> par la règle de trois, <strong>13,9 %</strong> par Clopper-Pearson.
+    Les deux sont affichés parce qu’ils diffèrent ; l’estimateur retenu pour les calculs est
+    Clopper-Pearson, choisi pour sa couverture et non pour sa valeur.
     Elles ne suppriment pas le risque. La méthode complète, ses limites et ses
     <strong>quatre</strong> réserves sont documentées publiquement.</p>
   </section>
