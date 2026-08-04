@@ -128,7 +128,18 @@ def main():
                 "properties": {
                     "description": arrete["description"],
                     "autorite": arrete["autorite"],
+                    # `tonnage_t` est le seuil le PLUS RESTRICTIF de l'arrete.
+                    # Il ne suffit pas : 16 arretes portent des regulations a
+                    # tonnages differents sur des rues differentes, et publier
+                    # « 3,5 t » sur une rue reglementee a 13 t est une valeur
+                    # FAUSSE, pas une valeur prudente. Le cas trouve :
+                    # Montrouge 2005/174-Circ, 3,5 t et 13 t, dont la Rue
+                    # Georges Bouzerait etait publiee a 3,5 t. La liste complete
+                    # accompagne donc toujours le minimum (§18.quinquies).
                     "tonnage_t": arrete["tonnage"],
+                    "tonnages_t": arrete.get("tonnages", [arrete["tonnage"]]),
+                    "tonnage_unique": len(arrete.get("tonnages",
+                                                     [arrete["tonnage"]])) == 1,
                     "metres": round(d["metres"], 1),
                     "metres_absents": round(d["metres_absents"], 1),
                     "couverture": round(c, 4),

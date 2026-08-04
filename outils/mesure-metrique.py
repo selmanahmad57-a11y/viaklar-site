@@ -20,10 +20,20 @@ Ce que ce fichier NE FAIT PAS, et c'est délibéré :
   - il ne compte pas de sommets. Le rééchantillonnage à pas constant est ce qui
     neutralise la densité de numérisation (§1 — la mesure dite « pondérée par la
     longueur » était une fraction de sommets) ;
-  - il ne lit AUCUN attribut à la portée de l'arrêté. Un arrêté est un
+  - il ne SÉLECTIONNE aucun attribut à la portée de l'arrêté. Un arrêté est un
     conteneur : il porte de 1 à 8 régulations, et lire un tonnage ou une
     géométrie à son niveau attribue à la circulation ce qui appartient au
     stationnement (§18.bis — le défaut trouvé le 3 août, corrigé ici).
+
+    **Mais il AGRÈGE au niveau de l'arrêté, et c'est l'unité qui l'exige.** Le
+    §3.2 sélectionne des ARRÊTÉS : un arrêté produit un enregistrement, avec
+    ses tonnages repliés. La première version de ce paragraphe affirmait « il
+    ne lit AUCUN attribut à la portée de l'arrêté » au-dessus d'un
+    `min(tonnages)` — un commentaire affirmant une propriété que le code n'a
+    pas, le défaut exact que ce fichier dénonce trente lignes plus bas.
+    Le repli est donc NOMMÉ, ses divergences COMPTÉES, et l'ensemble des
+    tonnages conservé pour que rien n'affirme un seuil unique quand il y en a
+    plusieurs (§18.quinquies).
 
 Usage :
     python3 outils/mesure-metrique.py <dialog.xml> <osm.json> <rapport.json> \\
@@ -359,6 +369,13 @@ def charger_dialog(chemin, collectivites=None):
         # Ce compteur est le témoin du défaut : il vaut ce que la lecture à la
         # portée de l'ordre aurait ramassé en trop. À zéro, les deux lectures
         # coïncident ; il ne doit jamais redevenir invisible.
+        #
+        # ATTENTION À CE QU'IL NE VOIT PAS. Il compare l'ORDRE à l'ENSEMBLE des
+        # régulations noEntry, donc il est AVEUGLE à une divergence ENTRE deux
+        # régulations noEntry — il restait à zéro sur Montrouge 2005/174-Circ,
+        # dont une régulation porte 3,5 t et l'autre 13 t. Un témoin qui ne
+        # témoigne pas de ce qu'on croit est pire qu'aucun témoin.
+        # `arretes_a_tonnages_divergents`, plus bas, couvre ce cas.
         poids_total = sum(1 for _ in element.iter(WEIGHT))
         poids_en_champ = sum(len(list(r.iter(WEIGHT))) for r in regulations)
         if poids_total > poids_en_champ:
@@ -433,9 +450,19 @@ def charger_dialog(chemin, collectivites=None):
                 description = (valeur.text or "").strip()
         autorite = autorite_brute
 
+        # `tonnage` est le SEUIL LE PLUS RESTRICTIF de l'arrêté, et il ne se
+        # publie jamais seul quand l'arrêté en porte plusieurs : ses régulations
+        # peuvent régir des rues différentes à des seuils différents, et une rue
+        # à 13 t affichée « 3,5 t » est une valeur fausse, pas une valeur
+        # prudente. `tonnages` porte l'ensemble ; les consommateurs qui
+        # affichent un seuil doivent le lire.
+        distincts = sorted(set(tonnages))
+        if len(distincts) > 1:
+            journal["arretes_a_tonnages_divergents"] += 1
         arretes.append(
             {
                 "tonnage": min(tonnages),
+                "tonnages": distincts,
                 "lignes": lignes,
                 "description": description,
                 "autorite": autorite,
