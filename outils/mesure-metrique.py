@@ -20,10 +20,12 @@ Ce que ce fichier NE FAIT PAS, et c'est délibéré :
   - il ne compte pas de sommets. Le rééchantillonnage à pas constant est ce qui
     neutralise la densité de numérisation (§1 — la mesure dite « pondérée par la
     longueur » était une fraction de sommets) ;
-  - il ne SÉLECTIONNE aucun attribut à la portée de l'arrêté. Un arrêté est un
-    conteneur : il porte de 1 à 8 régulations, et lire un tonnage ou une
+  - il ne SÉLECTIONNE aucun attribut à la portée de l'arrêté — et ce n'est pas
+    une affirmation de prose : `_verifier_portees_de_lecture()` échoue si un
+    `element.iter()` sur un attribut de régulation existe ailleurs que dans un
+    témoin. Un arrêté porte de 1 à 8 régulations, et lire un tonnage ou une
     géométrie à son niveau attribue à la circulation ce qui appartient au
-    stationnement (§18.bis — le défaut trouvé le 3 août, corrigé ici).
+    stationnement (§18.bis).
 
     **Mais il AGRÈGE au niveau de l'arrêté, et c'est l'unité qui l'exige.** Le
     §3.2 sélectionne des ARRÊTÉS : un arrêté produit un enregistrement, avec
@@ -51,6 +53,7 @@ Le rapport machine porte les valeurs à pleine précision ; la sortie texte en e
 une projection qui ne calcule rien.
 """
 
+import ast
 import hashlib
 import json
 import math
@@ -113,6 +116,77 @@ CLASSES_CARROSSABLES_PL = frozenset(
 )
 
 DECILES = 10
+
+
+# Attributs qui vivent dans la RÉGULATION. Les lire sur l'ordre attribue à la
+# circulation ce qui appartient au stationnement (§18.bis).
+ATTRIBUTS_DE_LA_REGULATION = ("WEIGHT", "GEOMETRY", "ACCESS_TYPE")
+
+# Les SEULES affectations autorisées à les lire sur l'ordre : les témoins, qui
+# comptent ce qu'une lecture haute aurait ramassé en trop. Un témoin ne
+# construit pas l'enregistrement, il le surveille.
+TEMOINS_AUTORISES = ("poids_total", "geometries_total")
+
+
+def _verifier_portees_de_lecture():
+    """L'affirmation du docstring est VÉRIFIÉE, pas affirmée.
+
+        Toute affirmation de docstring qui est vérifiable doit être une
+        assertion.
+
+    Le 4 août 2026, ce fichier portait « il ne lit AUCUN attribut à la portée
+    de l'arrêté » trente lignes au-dessus d'un `min(tonnages)` qui en lisait un.
+    C'est la troisième fois de la journée qu'un document décrivant un défaut le
+    contenait — la table avec l'arrondi, la page de reproductibilité, ce
+    docstring. Ce n'est pas un hasard : dans ces fichiers l'attention est sur le
+    récit, et c'est le récit qu'on relit.
+
+    Le motif est celui de `controler_separation()` : un contrôle qui échoue si
+    la propriété affirmée n'est pas tenue. Ici, par l'arbre syntaxique et non
+    par une recherche de texte — `element.iter(WEIGHT)` dans un commentaire ne
+    doit pas faire échouer, et le même appel dans une boucle qui construit
+    l'enregistrement doit faire échouer.
+    """
+    arbre = ast.parse(open(os.path.abspath(__file__), encoding="utf-8").read())
+    fonction = next(
+        (n for n in ast.walk(arbre)
+         if isinstance(n, ast.FunctionDef) and n.name == "charger_dialog"),
+        None,
+    )
+    exiger(fonction is not None, "charger_dialog introuvable : contrôle aveugle.")
+
+    autorises = set()
+    for noeud in ast.walk(fonction):
+        if (isinstance(noeud, ast.Assign) and len(noeud.targets) == 1
+                and isinstance(noeud.targets[0], ast.Name)
+                and noeud.targets[0].id in TEMOINS_AUTORISES):
+            for sous in ast.walk(noeud):
+                if isinstance(sous, ast.Call):
+                    autorises.add(id(sous))
+
+    fautes = []
+    for noeud in ast.walk(fonction):
+        if not (isinstance(noeud, ast.Call)
+                and isinstance(noeud.func, ast.Attribute)
+                and noeud.func.attr == "iter"
+                and isinstance(noeud.func.value, ast.Name)
+                and noeud.func.value.id == "element"):
+            continue
+        argument = noeud.args[0] if noeud.args else None
+        if (isinstance(argument, ast.Name)
+                and argument.id in ATTRIBUTS_DE_LA_REGULATION
+                and id(noeud) not in autorises):
+            fautes.append((noeud.lineno, argument.id))
+
+    exiger(
+        not fautes,
+        "Invariante rompue — lecture à la portée de l'ARRÊTÉ dans "
+        "charger_dialog :\n"
+        + "\n".join(f"  ligne {l} : element.iter({a})" for l, a in fautes)
+        + "\n\nUn arrêté porte de 1 à 8 régulations. Seuls les témoins "
+        f"{TEMOINS_AUTORISES} ont le droit de lire à ce niveau, et ils "
+        "comptent au lieu de construire.",
+    )
 
 
 def _verifier_listes_partagees():
@@ -381,8 +455,14 @@ def charger_dialog(chemin, collectivites=None):
         if poids_total > poids_en_champ:
             journal["tonnages_hors_regulation_noentry"] += poids_total - poids_en_champ
 
+        # LE TONNAGE SE NOUE À LA GÉOMÉTRIE DANS LA RÉGULATION QUI PORTE LES
+        # DEUX. Les collecter séparément puis les rapprocher au niveau de
+        # l'arrêté est ce qui a publié la Rue Georges Bouzerait à 3,5 t alors
+        # qu'elle est réglementée à 13 t (§18.quinquies).
+        tonnage_par_regulation = {}
         tonnages = []
-        for regulation in regulations:
+        for indice, regulation in enumerate(regulations):
+            propres = []
             for caracteristique in regulation.iter(WEIGHT):
                 operateurs[caracteristique.findtext(OPERATOR)] += 1
                 brut = caracteristique.findtext(TONNAGE)
@@ -393,7 +473,11 @@ def charger_dialog(chemin, collectivites=None):
                 if abs(valeur * 2 - round(valeur * 2)) > EPSILON_PAS_TONNAGE:
                     journal["rejet_tonnage_hors_pas"] += 1
                     continue
-                tonnages.append(valeur)
+                propres.append(valeur)
+            if propres:
+                tonnage_par_regulation[indice] = min(propres)
+            tonnages += propres
+            del propres
         if not tonnages:
             journal["rejet_noentry_sans_tonnage"] += 1
             element.clear()
@@ -417,8 +501,10 @@ def charger_dialog(chemin, collectivites=None):
             )
 
         lignes = []
+        tonnage_des_lignes = []
         points_seuls = 0
-        for regulation in regulations:
+        for indice, regulation in enumerate(regulations):
+            seuil = tonnage_par_regulation.get(indice)
             for geometrie in regulation.iter(GEOMETRY):
                 try:
                     objet = json.loads(geometrie.text)
@@ -435,6 +521,7 @@ def charger_dialog(chemin, collectivites=None):
                     ]
                     if len(propres) >= 2:
                         lignes.append(propres)
+                        tonnage_des_lignes.append(seuil)
         if points_seuls:
             journal["geometries_ponctuelles_sans_longueur"] += points_seuls
         if not lignes:
@@ -459,11 +546,29 @@ def charger_dialog(chemin, collectivites=None):
         distincts = sorted(set(tonnages))
         if len(distincts) > 1:
             journal["arretes_a_tonnages_divergents"] += 1
+
+        # L'INVARIANTE À LA GRANULARITÉ DE LA SORTIE. La sortie est un couple
+        # (géométrie, tonnage) ; tout contrôle posé au-dessus — par arrêté, par
+        # ensemble, par compte — peut manquer, et le précédent manquait.
+        # Celui-ci est au grain de la polyligne, et il aurait tiré.
+        exiger(
+            len(tonnage_des_lignes) == len(lignes),
+            f"Invariante rompue sur {description[:60]!r} : "
+            f"{len(lignes)} polylignes pour {len(tonnage_des_lignes)} seuils. "
+            "Toute géométrie reçoit le seuil de la régulation qui la porte.",
+        )
+        orphelines = sum(1 for t in tonnage_des_lignes if t is None)
+        if orphelines:
+            journal["polylignes_sans_tonnage_dans_leur_regulation"] += orphelines
         arretes.append(
             {
                 "tonnage": min(tonnages),
                 "tonnages": distincts,
                 "lignes": lignes,
+                # Parallèle à `lignes`, index par index. C'est CE couple qui est
+                # la sortie ; le publier permet à un consommateur d'afficher le
+                # seuil juste au lieu du seuil le plus bas.
+                "tonnage_des_lignes": tonnage_des_lignes,
                 "description": description,
                 "autorite": autorite,
             }
@@ -923,7 +1028,8 @@ def restituer(r, chemin):
 
 
 def main():
-    # Vérifié à chaque exécution, jamais supposé.
+    # Vérifiés à chaque exécution, jamais supposés.
+    _verifier_portees_de_lecture()
     _verifier_listes_partagees()
     exiger(
         len(sys.argv) >= 4,

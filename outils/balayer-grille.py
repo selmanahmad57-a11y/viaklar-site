@@ -211,10 +211,18 @@ def main():
               f"{m['taux']*100:>11.4f} {m['cellules']:>10}")
     taux_ech = [p["taux"] * 100 for p in par_echantillon]
     metres_ech = [p["metres_total"] for p in par_echantillon]
+    cellules_ech = [p["cellules"] for p in par_echantillon]
     print(f"\n  amplitude du taux sur l'ECHANTILLONNAGE : "
           f"{max(taux_ech) - min(taux_ech):.4f} point")
     print(f"  amplitude du denominateur               : "
-          f"{(max(metres_ech) - min(metres_ech))/1000:.2f} km")
+          f"{(max(metres_ech) - min(metres_ech))/1000:.2f} km  "
+          f"({(max(metres_ech)-min(metres_ech))/min(metres_ech)*100:.3f} %)")
+    print(f"  amplitude du COMPTE DE CELLULES         : "
+          f"{max(cellules_ech) - min(cellules_ech)} "
+          f"({(max(cellules_ech)-min(cellules_ech))/min(cellules_ech)*100:.3f} %)")
+    print("  -> les TROIS se publient. C'est l'invariance de la LONGUEUR qui")
+    print("     avait aveugle le controle precedent ; un balayage qui ne publie")
+    print("     que le taux reproduirait le meme angle mort, a son echelle.")
 
     taux_phase = [p["taux"] * 100 for p in par_phase]
     metres_phase = [p["metres_total"] for p in par_phase]
@@ -222,9 +230,13 @@ def main():
     amplitude_metres = max(metres_phase) - min(metres_phase)
     taux_taille = [t["taux"] * 100 for t in par_taille]
 
+    cellules_phase = [p["cellules"] for p in par_phase]
     print(f"\n  amplitude du taux sur la PHASE   : {amplitude_taux:.4f} point")
     print(f"  amplitude du denominateur        : {amplitude_metres/1000:.2f} km "
           f"({amplitude_metres/min(metres_phase)*100:.3f} %)")
+    print(f"  amplitude du compte de cellules  : "
+          f"{max(cellules_phase) - min(cellules_phase)} "
+          f"({(max(cellules_phase)-min(cellules_phase))/min(cellules_phase)*100:.3f} %)")
     print(f"  amplitude du taux sur la TAILLE  : "
           f"{max(taux_taille) - min(taux_taille):.4f} point")
 
@@ -252,6 +264,10 @@ def main():
             "mesures": par_echantillon,
             "amplitude_taux_points": max(taux_ech) - min(taux_ech),
             "amplitude_metres": max(metres_ech) - min(metres_ech),
+            "amplitude_cellules": max(cellules_ech) - min(cellules_ech),
+            "pourquoi_les_trois": "L'invariance de la LONGUEUR avait aveugle le "
+                "controle precedent. Un balayage qui ne publie que le taux "
+                "reproduirait le meme angle mort, a l'echelle du balayage.",
         },
         "axe_phase": {"pas_dedup_m": pas_reference, "mesures": par_phase,
                       "amplitude_taux_points": amplitude_taux,

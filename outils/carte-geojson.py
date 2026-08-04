@@ -138,6 +138,12 @@ def main():
                     # accompagne donc toujours le minimum (§18.quinquies).
                     "tonnage_t": arrete["tonnage"],
                     "tonnages_t": arrete.get("tonnages", [arrete["tonnage"]]),
+                    # Parallèle aux parties de la géométrie, index par index.
+                    # C'est le couple (géométrie, seuil) qui est la sortie ; un
+                    # consommateur peut donc afficher le seuil JUSTE au lieu du
+                    # plus bas. Sans lui, la Rue Georges Bouzerait resterait
+                    # publiée à 3,5 t alors qu'elle est réglementée à 13 t.
+                    "tonnage_par_partie": arrete.get("tonnage_des_lignes"),
                     "tonnage_unique": len(arrete.get("tonnages",
                                                      [arrete["tonnage"]])) == 1,
                     "metres": round(d["metres"], 1),
