@@ -112,10 +112,22 @@
   #barre button[aria-pressed="true"]{background:var(--titre)}
   #gabarit{color:var(--discret); margin-left:auto; font-variant-numeric:tabular-nums}
 
+  /* LE DIALOGUE TIENT DANS L'ÉCRAN. Sans `max-height`, les collections le
+     faisaient dépasser et « Enregistrer » devenait inatteignable — on ne
+     pouvait donc pas saisir un gabarit, c'est-à-dire rien faire.
+
+     Et `margin:auto` est REPOSÉ : le `*{margin:0}` en tête de cette feuille
+     écrase celui que le navigateur donne à <dialog>, ce qui le collait au bord
+     gauche. Un sélecteur universel qui touche un élément dont on n'avait pas
+     pensé qu'il avait des marges par défaut. */
   dialog{
     background:var(--carte); color:var(--texte); border:1px solid var(--trait);
-    border-radius:.5rem; padding:1.2rem; max-width:min(92vw,26rem); width:100%;
+    border-radius:.5rem; padding:0; max-width:min(92vw,26rem); width:100%;
+    margin:auto; max-height:88vh; overflow:hidden;
   }
+  dialog form{display:flex; flex-direction:column; max-height:88vh}
+  dialog .defilant{overflow-y:auto; padding:1.2rem 1.2rem 0; flex:1}
+  dialog > form > b:first-child{padding:1.2rem 1.2rem 0; display:block}
   dialog::backdrop{background:#000a}
   dialog label{display:block; margin:.7rem 0 .2rem; color:var(--discret);
     font-size:.85rem}
@@ -125,8 +137,10 @@
     font-variant-numeric:tabular-nums;
   }
   dialog .lignes{display:grid; grid-template-columns:1fr 1fr; gap:0 .8rem}
-  dialog menu{display:flex; gap:.5rem; justify-content:flex-end; margin:1.2rem 0 0;
-    padding:0}
+  /* Les boutons restent COLLÉS EN BAS, visibles quel que soit le défilement. */
+  dialog menu{display:flex; gap:.5rem; justify-content:flex-end; margin:0;
+    padding:1rem 1.2rem; border-top:1px solid var(--trait);
+    background:var(--carte); position:sticky; bottom:0}
   dialog menu button{
     background:var(--titre); color:#fff; border:0; border-radius:.3rem;
     padding:.55rem 1rem; font:inherit; font-weight:600; cursor:pointer;
@@ -177,6 +191,7 @@
   <button id="voix" aria-pressed="false">Voix</button>
   <button id="profil">Gabarit</button>
   <button id="noter" class="noter">Noter</button>
+  <button id="simuler">Position manuelle</button>
   <span id="gabarit">—</span>
 </div>
 
@@ -207,11 +222,42 @@
   </div>
 </noscript>
 
+<dialog id="fenetre-simulation">
+  <form method="dialog">
+    <b>Position manuelle</b>
+    <div class="defilant">
+      <p style="color:var(--discret);font-size:.88rem;margin:.6rem 0 0">
+        Un ordinateur n'a pas de puce GPS. Cette saisie permet d'essayer
+        l'application <b>sans rouler</b> — et tout ce qu'elle produit est
+        marqué comme <b>simulé</b>, dans l'écran comme dans le journal.
+        <br><br>Une position simulée ne teste pas ce qui compte le plus :
+        que le <b>cap</b> arrive vraiment d'un téléphone en mouvement.
+      </p>
+      <div class="lignes">
+        <div><label for="s-lon">Longitude</label>
+          <input id="s-lon" type="number" step="any" placeholder="4.8338"></div>
+        <div><label for="s-lat">Latitude</label>
+          <input id="s-lat" type="number" step="any" placeholder="45.7699"></div>
+        <div><label for="s-cap">Cap (°) · vide = inconnu</label>
+          <input id="s-cap" type="number" step="any" placeholder="77"></div>
+        <div><label for="s-pas">Pas d’avance (m)</label>
+          <input id="s-pas" type="number" step="any" value="50"></div>
+      </div>
+    </div>
+    <menu>
+      <button value="annuler">Fermer</button>
+      <button value="poser">Se placer ici</button>
+    </menu>
+  </form>
+</dialog>
+
 <dialog id="fenetre-profil">
   <form method="dialog">
     <b>Gabarit du véhicule</b>
-    <div id="champs" class="lignes"></div>
-    <div id="collections"></div>
+    <div class="defilant">
+      <div id="champs" class="lignes"></div>
+      <div id="collections"></div>
+    </div>
     <menu>
       <button value="annuler">Annuler</button>
       <button value="valider">Enregistrer</button>
@@ -712,6 +758,68 @@ $("voix").onclick = () => {
 };
 $("profil").onclick = ouvrirProfil;
 
+/* ── essayer sans rouler ─────────────────────────────────────────────────────
+
+   Un ordinateur n'a pas de puce GPS : sans cette saisie, l'application ne
+   pouvait être essayée QU'EN ROULANT — or c'est précisément ce qu'on ne peut
+   pas faire, et le cap est l'inconnue qui peut invalider le reste.
+
+   TOUT CE QUI SORT D'ICI EST MARQUÉ `simule`. Une observation simulée qui se
+   mélangerait à des observations réelles dans le journal ferait conclure d'un
+   essai de bureau ce qu'on croit avoir mesuré sur la route — et le journal est
+   précisément ce qui doit rester lisible plusieurs semaines après. */
+
+let simulation = null;
+
+function positionSimulee(lon, lat, cap) {
+  return {
+    coords: {
+      longitude: lon, latitude: lat,
+      heading: (cap == null || Number.isNaN(cap)) ? null : cap,
+      speed: null, accuracy: null, altitude: null,
+      altitudeAccuracy: null, heading_simule: true,
+    },
+    timestamp: Date.now(),
+    simule: true,
+  };
+}
+
+async function placer(lon, lat, cap) {
+  simulation = { lon, lat, cap };
+  if (!profil) { ouvrirProfil(); return; }
+  const position = positionSimulee(lon, lat, cap);
+  try {
+    dernierePosition = position;
+    rendre(derniereReponse = await interroger(position));
+    $("etat").textContent += " · SIMULÉ";
+  } catch (e) {
+    poser("Erreur en position simulée", echapper(String(e && e.message || e)),
+      "var(--interdit)");
+  }
+}
+
+$("simuler").onclick = () => {
+  if (simulation) {
+    $("s-lon").value = simulation.lon;
+    $("s-lat").value = simulation.lat;
+    if (simulation.cap != null) $("s-cap").value = simulation.cap;
+  }
+  $("fenetre-simulation").showModal();
+};
+
+$("fenetre-simulation").addEventListener("close", () => {
+  if ($("fenetre-simulation").returnValue !== "poser") return;
+  const lon = parseFloat($("s-lon").value), lat = parseFloat($("s-lat").value);
+  const capBrut = $("s-cap").value.trim();
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+    poser("Position simulée incomplète",
+      "Longitude et latitude sont nécessaires : sans elles il n’y a pas de lieu "
+      + "à interroger.", "var(--incertain)");
+    return;
+  }
+  placer(lon, lat, capBrut === "" ? null : parseFloat(capBrut));
+};
+
 /* ── ce qui rend un trajet mesurable ─────────────────────────────────────────
 
    LA RÈGLE UN : ON NE CLASSE JAMAIS AU BORD DE LA ROUTE. Ce bouton ne demande
@@ -765,6 +873,10 @@ function noter() {
     ecartees: r ? (r.regles_ecartees || []).length : null,
     profil,
     voix: $("voix").getAttribute("aria-pressed") === "true",
+    /* SIMULÉ OU RÉEL. Une observation de bureau qui se mélangerait aux
+       observations de route ferait conclure d'un essai ce qu'on croit avoir
+       mesuré. Le champ n'est jamais absent. */
+    simule: !!(dernierePosition && dernierePosition.simule),
     /* NI CATÉGORIE NI JUGEMENT. Ce champ existe pour être rempli À L'ARRÊT,
        depuis docs/verification-trajet.md, et il part vide exprès. */
     categorie: null,
