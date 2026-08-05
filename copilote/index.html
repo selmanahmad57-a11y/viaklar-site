@@ -1,0 +1,713 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<title>Viaklar — copilote</title>
+
+<!--
+  LE COPILOTE. Étape B du plan d'intégration : position, proximité d'une règle,
+  avertissement. Pas de routage.
+
+  C'EST LE PREMIER OBJET UTILISABLE SUR UN VRAI TRAJET. Tout le reste du projet
+  — la mesure, le registre, les quatorze invariantes — n'a jamais été vu par un
+  conducteur. Ceci l'est.
+
+  TROIS CONTRAINTES QUI DÉCIDENT DE TOUT LE RESTE :
+
+  CONTRAINTE: cette page ne dit jamais « interdit » quand elle veut dire « je
+    ne sais pas », et jamais « autorisé » non plus.
+  CONTRAINTE: aucun LIBELLÉ ni SEUIL de verdict n'est écrit dans cette page ;
+    ils viennent tous de copilote/index.json. Les COULEURS y sont, parce que les
+    données n'en publient pas — et un verdict qu'elles ne nomment pas est peint
+    en incertain, jamais en anodin. L'affirmation s'arrête où les données
+    s'arrêtent : la rétrécir vaut mieux que l'élargir en prétendant.
+  CONTRAINTE: une annonce vocale ne se répète pas tant que la règle est là, et
+    se redit au retour — la mémoire se clé sur la TRANSITION (règle, verdict) et
+    s'oublie quand le véhicule quitte l'emprise. Dans le doute, on annonce.
+  CONTRAINTE: un défaut de cette page ne s'affiche jamais comme une panne
+    réseau. Un 4xx dit « nous avons mal demandé » et doit être bruyant.
+
+  1. SUR-RESTREINDRE N'EST PAS PRUDENT. Une fausse interdiction est le mécanisme
+     par lequel les vraies se font ignorer : un conducteur à qui l'on refuse une
+     rue autorisée ne désinstalle pas, il garde l'app et la contourne — puis
+     l'alerte du pont bas arrive dans un canal qu'il a appris à filtrer. Cette
+     page ne dit donc JAMAIS « interdit » quand elle veut dire « je ne sais pas ».
+
+  2. L'INCERTITUDE PORTE SON SIÈGE. « Indéterminé » veut dire que NOTRE donnée
+     manque. « Sous votre déclaration » veut dire que l'incertitude est chez le
+     conducteur. Les deux ne se disent pas avec les mêmes mots, parce que si
+     l'app affiche « autorisé » sur une exemption non vérifiée et que le
+     conducteur est verbalisé, l'app a dit quelque chose de faux.
+
+  3. AUCUN CHIFFRE EN DUR. Seuils, rayons, libellés, ordre de gravité, champs du
+     profil : tout vient de copilote/index.json, qui recopie la configuration du
+     registre. Un libellé écrit ici serait un libellé que le registre ne peut
+     plus corriger.
+
+  4. AUCUN SERVEUR. Les règles sont des tuiles statiques et l'évaluation tourne
+     dans le navigateur — donc le copilote fonctionne en zone blanche, c'est-à-
+     dire précisément là où le conducteur est seul.
+
+  Pas de boutique, pas de délai de validation : un signet, un téléphone sur
+  support, premier plan.
+-->
+
+<style>
+  :root{
+    --fond:#0b0e14; --carte:#111621; --trait:#1e2634;
+    --texte:#e8ecf4; --discret:#8b97ad;
+    --interdit:#e5484d; --incertain:#f5a524; --declare:#8b5cf6;
+    --autorise:#30a46c; --titre:#0091ff;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    background:var(--fond); color:var(--texte);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right)
+            env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* LE VERDICT OCCUPE LE HAUT DE L'ÉCRAN. Un conducteur le lit d'un coup d'œil,
+     à un mètre, en roulant. Tout le reste est secondaire par construction. */
+  #verdict{
+    padding:1.4rem 1.1rem; border-bottom:1px solid var(--trait);
+    transition:background .25s;
+  }
+  #etat{font-size:1.9rem; font-weight:700; line-height:1.15; letter-spacing:-.02em}
+  #detail{margin-top:.5rem; color:var(--discret); font-size:.95rem}
+  #distance{font-size:3.2rem; font-weight:800; line-height:1; letter-spacing:-.03em}
+  #distance small{font-size:1.1rem; font-weight:600; color:var(--discret)}
+
+  #liste{flex:1; overflow-y:auto; padding:.6rem 1.1rem 1.1rem}
+  .regle{
+    border-left:.3rem solid var(--trait); background:var(--carte);
+    padding:.8rem .9rem; margin:.6rem 0; border-radius:.35rem;
+  }
+  .regle b{display:block; font-size:1.05rem}
+  .regle .ou{color:var(--discret); font-size:.9rem; margin-top:.15rem}
+  .regle .pourquoi{
+    margin-top:.5rem; padding-top:.5rem; border-top:1px solid var(--trait);
+    color:var(--discret); font-size:.86rem;
+  }
+  .regle a{color:var(--titre); font-size:.86rem; text-decoration:none}
+  .puce{
+    display:inline-block; padding:.12rem .5rem; border-radius:1rem;
+    font-size:.75rem; font-weight:700; letter-spacing:.02em; margin-right:.35rem;
+  }
+
+  #barre{
+    border-top:1px solid var(--trait); padding:.7rem 1.1rem;
+    display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;
+    background:var(--carte); font-size:.9rem;
+  }
+  #barre button{
+    background:var(--trait); color:var(--texte); border:0; border-radius:.3rem;
+    padding:.5rem .8rem; font:inherit; font-weight:600; cursor:pointer;
+  }
+  #barre button[aria-pressed="true"]{background:var(--titre)}
+  #gabarit{color:var(--discret); margin-left:auto; font-variant-numeric:tabular-nums}
+
+  dialog{
+    background:var(--carte); color:var(--texte); border:1px solid var(--trait);
+    border-radius:.5rem; padding:1.2rem; max-width:min(92vw,26rem); width:100%;
+  }
+  dialog::backdrop{background:#000a}
+  dialog label{display:block; margin:.7rem 0 .2rem; color:var(--discret);
+    font-size:.85rem}
+  dialog input{
+    width:100%; padding:.6rem; border-radius:.3rem; border:1px solid var(--trait);
+    background:var(--fond); color:var(--texte); font:inherit;
+    font-variant-numeric:tabular-nums;
+  }
+  dialog .lignes{display:grid; grid-template-columns:1fr 1fr; gap:0 .8rem}
+  dialog menu{display:flex; gap:.5rem; justify-content:flex-end; margin:1.2rem 0 0;
+    padding:0}
+  dialog menu button{
+    background:var(--titre); color:#fff; border:0; border-radius:.3rem;
+    padding:.55rem 1rem; font:inherit; font-weight:600; cursor:pointer;
+  }
+  dialog menu button[value="annuler"]{background:var(--trait)}
+  dialog fieldset{border:1px solid var(--trait); border-radius:.35rem;
+    margin:.9rem 0 0; padding:.6rem .8rem .8rem}
+  dialog legend{color:var(--discret); font-size:.8rem; padding:0 .3rem}
+  dialog label.case{display:flex; align-items:center; gap:.5rem; margin:.35rem 0 0;
+    color:var(--texte); font-size:.92rem}
+  dialog label.case input{width:auto; margin:0}
+
+  /* LA QUESTION QUE L'INTERDICTION APPELLE. L'évaluateur dit exactement quelle
+     phrase la ferait tomber ; ne pas la poser laisse 1 262 règles en « interdit »
+     pour un livreur qui avait le droit de passer. */
+  .lever{margin-top:.6rem; padding-top:.6rem; border-top:1px solid var(--trait)}
+  .lever button{
+    background:var(--declare); color:#fff; border:0; border-radius:.3rem;
+    padding:.4rem .7rem; font:inherit; font-size:.85rem; font-weight:600;
+    cursor:pointer; margin:.3rem .3rem 0 0;
+  }
+  .lever .quoi{color:var(--discret); font-size:.84rem}
+
+  #source{padding:.6rem 1.1rem 1rem; color:var(--discret); font-size:.75rem;
+    border-top:1px solid var(--trait); line-height:1.45}
+  #source a{color:var(--discret)}
+</style>
+
+<div id="verdict">
+  <div id="etat">Profil à renseigner</div>
+  <div id="detail">Le gabarit décide de tout : sans lui, aucune règle ne peut
+    être évaluée.</div>
+</div>
+
+<div id="liste"></div>
+
+<div id="barre">
+  <button id="suivre" aria-pressed="false">Suivre ma position</button>
+  <button id="voix" aria-pressed="false">Voix</button>
+  <button id="profil">Gabarit</button>
+  <span id="gabarit">—</span>
+</div>
+
+<div id="source">Chargement…</div>
+
+<dialog id="fenetre-profil">
+  <form method="dialog">
+    <b>Gabarit du véhicule</b>
+    <div id="champs" class="lignes"></div>
+    <div id="collections"></div>
+    <menu>
+      <button value="annuler">Annuler</button>
+      <button value="valider">Enregistrer</button>
+    </menu>
+  </form>
+</dialog>
+
+<script type="module">
+"use strict";
+
+/* SANS SERVEUR. Le copilote lit des tuiles statiques et evalue DANS le
+   navigateur — donc il fonctionne en zone blanche, c'est-a-dire precisement la
+   ou le conducteur est seul. Un copilote qui depend d'un serveur est un
+   copilote qui se tait au pire endroit. */
+import { Tuiles, reglesDevant } from "./proximite.js";
+import { evaluerToutes } from "./evaluateur.js";
+
+/* La configuration vient des données, jamais d'ici. Une valeur écrite dans
+   cette page est une valeur que le registre ne peut plus corriger — c'est la
+   règle du projet, et elle vaut aussi pour l'interface. */
+const BASE = new URLSearchParams(location.search).get("donnees") || ".";
+
+const $ = (id) => document.getElementById(id);
+const PROFIL_STOCKE = "viaklar.profil";
+
+let config = null;         // lue dans copilote/index.json
+let tuiles = null;
+let profil = null;
+let veille = null;         // identifiant du watchPosition
+let annoncees = new Set();   // clés (règle, verdict) déjà dites
+let derniereReponse = null;   // pour réafficher après une déclaration
+
+/* ── ce que la page sait dire ────────────────────────────────────────────────
+   LES LIBELLÉS viennent des données — `config.libelles_verdict`. LES COULEURS,
+   elles, sont ICI : les données n'en publient aucune. Ce commentaire disait le
+   contraire, et il décrivait un objet qui n'est pas celui-ci.
+
+   Conséquence assumée : ajouter un verdict au registre demande de toucher cette
+   page pour lui donner sa couleur. En attendant qu'elle soit touchée, un verdict
+   inconnu est peint en INCERTAIN et non en anodin — sans quoi le bandeau serait
+   identique aux états neutres « Prêt » et « Suivi arrêté », et la page peindrait
+   en rien un verdict qu'elle sait pourtant nommer et trier. */
+const COULEUR = {
+  interdit: "var(--interdit)",
+  indetermine: "var(--incertain)",
+  autorise_sous_declaration: "var(--declare)",
+  autorise_sur_titre: "var(--titre)",
+  autorise: "var(--autorise)",
+};
+
+/* `poser` VIDE LA LISTE. Elle ne le faisait pas : les cartes du dernier point
+   connu restaient à l'écran sous « Hors ligne », sous « Position indisponible »,
+   sous « Suivi arrêté », et — le pire — après un changement de gabarit, avec des
+   verdicts calculés pour un véhicule qui n'existe plus. La page continuait de
+   dire « interdit » et « autorisé » sur un état qu'elle venait de déclarer
+   inconnu. `rendre` repeuple ensuite ; tout autre appel efface. */
+function poser(etat, detail, couleur, garderLaListe) {
+  if (!garderLaListe) {
+    $("liste").innerHTML = "";
+    derniereReponse = null;
+    annoncees.clear();   /* on ne sait plus où l'on est : tout redevient neuf */
+  }
+  $("etat").textContent = etat;
+  $("detail").innerHTML = detail;
+  $("verdict").style.background = couleur
+    ? `color-mix(in srgb, ${couleur} 18%, var(--fond))` : "";
+  $("etat").style.color = couleur || "";
+}
+
+/* ── le profil ───────────────────────────────────────────────────────────────
+   Les champs sont ceux que les données déclarent, pas ceux que cette page
+   imagine.
+   Sans cette règle le profil devient un questionnaire, et on demande au
+   conducteur des choses dont aucune règle ne dépend. */
+function construireChamps() {
+  const p = (config && config.profil) || {};
+  const champs = p.champs || [];
+  $("champs").innerHTML = champs.map((c) => `
+    <div>
+      <label for="c-${c.cle}">${c.libelle}${c.unite ? " (" + c.unite + ")" : ""}${
+        c.obligatoire ? "" : " · facultatif"}</label>
+      <input id="c-${c.cle}" name="${c.cle}" type="number" inputmode="decimal"
+             step="${c.pas != null ? c.pas : "any"}"
+             value="${profil && profil[c.cle] != null ? profil[c.cle] : ""}">
+    </div>`).join("");
+
+  /* LES COLLECTIONS. 2 622 critères du registre portent une CLASSE de véhicule,
+     pas une dimension — sans ce bloc, la page fait répondre « la dimension
+     heavyGoodsVehicle n'est pas renseignée » là où la vraie incertitude est
+     ailleurs. C'est le trou le plus coûteux qu'un relecteur a trouvé.
+
+     Leur énumération vient du serveur, qui la DÉRIVE de ce que le registre
+     référence : aucune activité n'existe dans le profil si aucune exemption ne
+     la réclame, sinon le profil devient un questionnaire. */
+  const collections = p.collections || {};
+  const bloc = Object.entries(collections).flatMap(([porteur, listes]) =>
+    Object.entries(listes).map(([nom, valeurs]) => `
+      <fieldset>
+        <legend>${libelleCollection(porteur, nom)}</legend>
+        ${valeurs.map((v) => `
+          <label class="case"><input type="checkbox" data-porteur="${porteur}"
+            data-liste="${nom}" value="${v}"
+            ${estCoche(porteur, nom, v) ? "checked" : ""}> ${echapper(v)}</label>`).join("")}
+      </fieldset>`)).join("");
+  $("collections").innerHTML = bloc;
+}
+
+/* REPLI, et il DIT qu'il est un repli. Ces quatre libellés affirment une
+   sémantique — « permanent », « change à chaque étape » — que le serveur n'a
+   jamais envoyée, sur des clés qu'il DÉRIVE du registre. S'il les publie un
+   jour dans `profil.collections_libelles`, ils gagnent. */
+const LIBELLES_COLLECTION = {
+  "vehicule.categories": "Catégorie du véhicule — permanent",
+  "entreprise.fonctions": "Fonction habilitée de l’entreprise — permanent",
+  "trajet.chargement": "Chargement du jour — change à chaque étape",
+  "trajet.motifs_declares": "Motif de ce trajet — change à chaque étape",
+};
+/* Les trois porteurs ne se confondent pas : un aménagement frigorifique est
+   permanent, un chargement de denrées ne l'est pas. Le même camion est exempté
+   le matin et ne l'est plus l'après-midi à vide. */
+function libelleCollection(porteur, nom) {
+  const cle = porteur + "." + nom;
+  const servis = (config.profil || {}).collections_libelles || {};
+  return servis[cle] || LIBELLES_COLLECTION[cle] || (porteur + " · " + nom);
+}
+function estCoche(porteur, nom, valeur) {
+  return !!(profil && profil[porteur] && Array.isArray(profil[porteur][nom])
+            && profil[porteur][nom].includes(valeur));
+}
+
+function lireProfil() {
+  const p = (config && config.profil) || {};
+  const lu = {};
+  let complet = (p.champs || []).length > 0;
+  for (const c of (p.champs || [])) {
+    const brut = $("c-" + c.cle).value.trim();
+    if (brut === "") { if (c.obligatoire) complet = false; continue; }
+    lu[c.cle] = Number(brut);
+  }
+  /* Les porteurs obligatoires existent TOUJOURS, même vides : un porteur absent
+     serait lu comme « aucune habilitation, aucun chargement » — l'absence
+     habillée en valeur. Mais une LISTE ne s'envoie jamais vide à tort :
+     `categories: []` affirmerait que ce camion n'est pas un poids lourd. */
+  for (const porteur of (p.porteurs_obligatoires || [])) lu[porteur] = {};
+  for (const boite of document.querySelectorAll("#collections input:checked")) {
+    const { porteur, liste } = boite.dataset;
+    lu[porteur] = lu[porteur] || {};
+    (lu[porteur][liste] = lu[porteur][liste] || []).push(boite.value);
+  }
+  return complet ? lu : null;
+}
+
+function afficherGabarit() {
+  if (!profil) { $("gabarit").textContent = "—"; return; }
+  const champs = (config && config.profil && config.profil.champs) || [];
+  $("gabarit").textContent = champs
+    .filter((c) => profil[c.cle] != null)
+    .map((c) => `${profil[c.cle]}${c.unite || ""}`)
+    .join(" · ");
+}
+
+/* ── l'interrogation ─────────────────────────────────────────────────────── */
+
+async function interroger(position) {
+  const cap = position.coords.heading;
+  const trouve = await reglesDevant(
+    tuiles,
+    [position.coords.longitude, position.coords.latitude],
+    Number.isFinite(cap) ? cap : null,
+    config.proximite.distance_devant_m,
+    config.proximite);
+
+  /* L'EVALUATION TOURNE ICI. Colorier la route exige d'evaluer toutes les
+     regles visibles pour CE vehicule a CET instant : aucun cache serveur n'est
+     possible, et un aller-retour reseau par point GPS serait de toute facon
+     inutilisable sur une departementale. */
+  const juge = evaluerToutes(
+    trouve.regles,
+    profil.vehicule || {}, profil.entreprise || {}, profil.trajet || {},
+    new Date().toISOString(), config);
+
+  const horsAxes = [];
+  if (!trouve.oriente && trouve.pourquoi)
+    horsAxes.push({ origine: "cap absent", pourquoi: trouve.pourquoi });
+  if (trouve.manquantes.length)
+    horsAxes.push({
+      origine: "tuiles manquantes",
+      pourquoi: trouve.manquantes.length + " zone(s) n\u2019ont pas pu etre "
+        + "chargees. Aucune absence d\u2019alerte ne vaut autorisation.",
+    });
+
+  /* LA DISTANCE VIENT DE LA PROXIMITÉ, LE VERDICT DE L'ÉVALUATEUR.
+     L'évaluateur reconstruit ses constats et ne transporte pas `distance_m` —
+     c'est correct, il ne sait rien de la géométrie et ne doit rien en savoir.
+     On recolle sur `id`, le nom du registre. Sans ce recollage, la page
+     affichait « NaN m » en 3,2 rem sous le verdict. */
+  const parId = new Map(trouve.regles.map((r) => [r.id, r]));
+  const regles = (juge.regles || []).map((c) => {
+    const g = parId.get(c.regle ?? c.id) || {};
+    return {
+      ...c,
+      distance_m: c.distance_m ?? g.distance_m,
+      distance_a_parcourir_m: c.distance_a_parcourir_m ?? g.distance_a_parcourir_m,
+      ecart_lateral_m: c.ecart_lateral_m ?? g.ecart_lateral_m,
+      voie: c.voie || g.voie,
+    };
+  });
+
+  return {
+    distance_sondee_m: config.proximite.distance_devant_m,
+    regles,
+    regles_ecartees: juge.ecartees || [],
+    verdict_d_ensemble: { valeur: juge.verdict, pourquoi: juge.pourquoi },
+    nature_de_la_distance: trouve.oriente ? null : trouve.pourquoi,
+    incertitude: { hors_axes: horsAxes },
+    couverture: config.couverture || {},
+  };
+}
+
+/* CE QUI QUALIFIE UN VERDICT, et lui retire le droit d'être vert.
+
+   Le service rend `verdict_d_ensemble.valeur = "aucune_restriction_connue"` là où un arrêté
+   « INTERDICTION DE CIRCULATION DANS LES DEUX SENS PAR MESURE DE SÉCURITÉ » est
+   présent mais ÉCARTÉ faute de critère véhicule lisible. `valeur` est une clé
+   machine ; la phrase est dans `pourquoi`. La page promouvait cette clé en gros
+   titre vert — le mot avait durci, le vert était resté.
+
+   Une réserve existe dès qu'une de ces conditions tient : des règles ont été
+   écartées, la liste est tronquée, ou le service déclare une incertitude hors
+   des quatre axes du registre — cap absent, module manquant, mode dégradé. */
+function reserves(reponse) {
+  const r = [];
+  const ecartees = reponse.regles_ecartees;
+  if (Array.isArray(ecartees) && ecartees.length) {
+    r.push(`${ecartees.length} arrêté(s) présent(s) ici ne sont pas évaluables :`
+      + " " + ecartees.map((e) => echapper(e.intitule || e.reference || ""))
+                      .join(" · "));
+  }
+  if (reponse.tronque) {
+    r.push(`Liste tronquée : ${reponse.regles_a_verdict} règle(s) portent un`
+      + ` verdict, ${(reponse.regles || []).length} sont affichées. Les plus`
+      + " graves y sont, l’inventaire n’est pas complet.");
+  }
+  for (const h of ((reponse.incertitude || {}).hors_axes || []))
+    r.push(echapper(h.pourquoi || h.origine || ""));
+  if (reponse.mode && reponse.mode !== "nominal")
+    r.push(`Service en mode « ${echapper(reponse.mode)} ».`);
+  if (reponse.nature_de_la_distance)
+    r.push(echapper(reponse.nature_de_la_distance));
+  return r;
+}
+
+/* Le verdict le plus grave d'abord — mais « le plus grave » n'est PAS une
+   opinion de cette page : l'ordre vient de les données, parce que c'est le registre
+   qui sait ce qu'une incertitude coûte, pas l'affichage. */
+function trier(regles) {
+  const ordre = (config && config.ordre_de_gravite) || [];
+  /* indexOf rend -1 sur un verdict inconnu, ce qui le placerait EN TÊTE :
+     la page échouerait vers le plus grave sans le savoir. Un mot que le
+     serveur n'a jamais promis va en queue, et se voit. */
+  const rang = (v) => { const i = ordre.indexOf(v); return i < 0 ? ordre.length : i; };
+  return [...regles].sort((a, b) => {
+    const ga = rang(a.verdict), gb = rang(b.verdict);
+    if (ga !== gb) return ga - gb;
+    return (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity);
+  });
+}
+
+function rendre(reponse) {
+  const regles = trier(reponse.regles || []);
+  if (!regles.length) {
+    /* CETTE PAGE NE DIT PAS « AUTORISÉ » QUAND ELLE VEUT DIRE « JE NE SAIS
+       PAS ». Une liste vide veut dire « rien d'ingéré ici », jamais « la
+       circulation y est libre » — le registre ne couvre que ce que DiaLog
+       publie, et son exhaustivité n'est pas établie. Le vert affirmait le
+       contraire ; c'est la contrainte 1 de cette page, retournée contre elle.
+       Le serveur envoie déjà la phrase juste : on l'affiche au lieu d'en
+       inventer une. */
+    const ens = reponse.verdict_d_ensemble || {};
+    const notes = reserves(reponse);
+    /* Le titre ne prend la couleur du verdict QUE s'il n'est réservé par rien.
+       Sinon il passe à l'incertain : un verdict qualifié n'est pas un verdict
+       net, et c'est le titre que le conducteur lit à un mètre. */
+    const couleur = notes.length ? "var(--incertain)"
+                                 : (COULEUR[ens.valeur] || "");
+    const titre = notes.length
+      ? ((config.libelles_verdict || {})[ens.valeur] || "Sans verdict")
+        + " — sous réserve"
+      : ((config.libelles_verdict || {})[ens.valeur] || "Sans verdict net");
+    poser(titre,
+      echapper(ens.pourquoi || "")
+        + notes.map((n) => `<br><br><b>⚠ ${n}</b>`).join("")
+        + (reponse.couverture && reponse.couverture.ce_que_l_absence_ne_dit_pas
+            ? `<br><br>${echapper(reponse.couverture.ce_que_l_absence_ne_dit_pas)}`
+            : ""),
+      couleur);
+    annoncees.clear();   /* plus rien ici : le retour sera une TRANSITION */
+    return;
+  }
+
+  oublier(regles);
+  const t = regles[0];
+  const libelle = (config.libelles_verdict || {})[t.verdict] || t.verdict;
+  const notes = reserves(reponse);
+  /* SANS CAP, LA DISTANCE N'EST PAS « DEVANT ». Le service l'écrit
+     (`nature_de_la_distance`, `hors_axes`) : la sélection est un DISQUE, et une
+     règle DERRIÈRE le véhicule peut y figurer. Afficher « 210 m » en 3,2 rem
+     affirmait « avant d'y être » sur une donnée qui ne le dit pas. */
+  const oriente = t.distance_a_parcourir_m != null;
+  const distance = t.distance_m != null
+    ? `<span id="distance">${Math.round(t.distance_m)}<small> m${
+        oriente ? "" : " à vol d’oiseau"}</small></span>`
+    : "à cet endroit";
+  /* Un verdict que le serveur n'a jamais promis n'est pas peint en anodin :
+     COULEUR[inconnu] rend undefined, et le bandeau devenait identique aux états
+     neutres. Il passe à l'incertain et se voit. */
+  const couleur = notes.length ? "var(--incertain)"
+                               : (COULEUR[t.verdict] || "var(--incertain)");
+  poser(
+    notes.length ? libelle + " — sous réserve" : libelle,
+    distance + notes.map((n) => `<br><b>⚠ ${n}</b>`).join(""),
+    couleur, true
+  );
+  annoncer(t, libelle, oriente);
+
+  $("liste").innerHTML = "" || regles.map((r) => {
+    const c = COULEUR[r.verdict] || "var(--trait)";
+    const nom = (config.libelles_verdict || {})[r.verdict] || r.verdict;
+    return `
+      <div class="regle" style="border-left-color:${c}">
+        <span class="puce" style="background:${c};color:#fff">${nom}</span>
+        ${r.distance_m != null
+          ? `<span style="color:var(--discret)">dans ${Math.round(r.distance_m)} m</span>`
+          : ""}
+        <b>${echapper(r.intitule || r.reference || "")}</b>
+        <div class="ou">${echapper([r.voie, r.autorite].filter(Boolean).join(" · "))}</div>
+        ${r.pourquoi
+          ? `<div class="pourquoi">${echapper(r.pourquoi)}</div>` : ""}
+        ${(r.declarations_qui_leveraient || []).length
+          ? `<div class="lever">
+               <div class="quoi">Cette interdiction tombe si l’une de ces
+                 affirmations est vraie — et c’est <b>vous</b> qui l’affirmez :</div>
+               ${r.declarations_qui_leveraient.map((d) =>
+                 `<button type="button" data-declarer="${echapper(d)}">${
+                    echapper(d)}</button>`).join("")}
+             </div>` : ""}
+        ${r.url ? `<div style="margin-top:.5rem">
+            <a href="${r.url}" target="_blank" rel="noopener">lire l’arrêté ↗</a>
+          </div>` : ""}
+      </div>`;
+  }).join("");
+}
+
+/* La déclaration se demande AU MOMENT OÙ une exemption en dépend, une fois, et
+   retenue ensuite — jamais à l'inscription (§regles_de_declaration). Le bouton
+   n'apparaît donc que sur la règle qui la réclame.
+
+   Elle est RETENUE dans le profil parce qu'un motif de trajet vaut pour le
+   trajet ; le conducteur peut la retirer dans le gabarit quand son chargement
+   change. Ce qui est déclaré est déclaré par LUI : la couleur du verdict le dit
+   ensuite (`autorise_sous_declaration`, mauve, pas vert). */
+function declarer(motif) {
+  const liste = ((config.profil || {}).collections || {}).trajet || {};
+  const nom = Object.keys(liste).find((k) => (liste[k] || []).includes(motif));
+  if (!nom) return;
+  profil.trajet = profil.trajet || {};
+  const deja = profil.trajet[nom] || [];
+  if (!deja.includes(motif)) profil.trajet[nom] = [...deja, motif];
+  localStorage.setItem(PROFIL_STOCKE, JSON.stringify(profil));
+  /* La clé d'anti-répétition porte DÉJÀ le verdict : tout changement réel la
+     change et sera annoncé. La remettre à zéro ici ne faisait que REJOUER une
+     annonce identique quand rien n'avait bougé — l'inverse de la contrainte.
+     Et on ne réaffiche une réponse en cache que si elle est encore la nôtre :
+     depuis « Hors ligne », `derniereReponse` a été effacée par `poser`. */
+  if (derniereReponse) rendre(derniereReponse);
+}
+
+$("liste").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-declarer]");
+  if (b) declarer(b.dataset.declarer);
+});
+
+function echapper(t) {
+  return String(t ?? "").replace(/[&<>"]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+/* ── la voix ─────────────────────────────────────────────────────────────────
+   Une annonce répétée est une annonce qu'on cesse d'entendre. On n'annonce donc
+   qu'un CHANGEMENT — pas un état. C'est la même défaillance que la fausse
+   interdiction, par le canal de l'attention. */
+/* UNE ANNONCE EST FONCTION D'UNE TRANSITION, donc sa mémoire se clé sur la
+   transition — (identifiant de règle, verdict) — et s'oublie quand le véhicule
+   QUITTE l'emprise de la règle. Ni un temps, ni une distance : la règle sort de
+   la réponse, donc on l'a quittée.
+
+   Une mémoire d'ÉTAT se trompait des deux côtés : elle rejouait une annonce
+   identique quand `declarer()` la remettait à zéro, et elle se TAISAIT au retour
+   dans une rue déjà annoncée deux minutes plus tôt — du côté dangereux.
+
+   DÉFAUT ASYMÉTRIQUE ASSUMÉ : dans le doute sur l'existence de la transition,
+   on annonce. Réannoncer coûte un agacement ; ne pas annoncer coûte le pont.
+   La clé (identifiant, verdict) tient les deux à la fois — elle interdit la
+   répétition sans condition ET garantit la réannonce au retour, parce que c'est
+   bien une transition nouvelle. */
+function oublier(regles) {
+  const presentes = new Set(regles.map((r) => r.reference + "|" + r.verdict));
+  for (const cle of [...annoncees]) if (!presentes.has(cle)) annoncees.delete(cle);
+}
+
+function annoncer(regle, libelle, oriente) {
+  if ($("voix").getAttribute("aria-pressed") !== "true") return;
+  const cle = regle.reference + "|" + regle.verdict;
+  if (annoncees.has(cle)) return;
+  annoncees.add(cle);
+  /* « dans N mètres » n'a de sens QUE si la distance est orientée. Sans cap,
+     la règle peut être derrière : on dit qu'elle est là, pas qu'elle arrive. */
+  const texte = regle.distance_m == null ? libelle
+    : oriente ? `${libelle}, dans ${Math.round(regle.distance_m)} mètres`
+              : `${libelle}, à ${Math.round(regle.distance_m)} mètres, `
+                + "direction inconnue";
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texte);
+    u.lang = config.langue_de_la_voix;
+    speechSynthesis.speak(u);
+  } catch (e) { /* pas de voix : l'affichage reste, et il suffit */ }
+}
+
+/* ── la boucle ───────────────────────────────────────────────────────────── */
+
+function suivre(actif) {
+  $("suivre").setAttribute("aria-pressed", String(actif));
+  if (!actif) {
+    if (veille != null) navigator.geolocation.clearWatch(veille);
+    veille = null;
+    poser("Suivi arrêté", "Aucune position n’est lue.", "");
+    return;
+  }
+  if (!profil) { ouvrirProfil(); return; }
+  poser("Recherche de position…", "Le premier point peut prendre quelques secondes.", "");
+  veille = navigator.geolocation.watchPosition(
+    async (position) => {
+      try { rendre(derniereReponse = await interroger(position)); }
+      catch (e) {
+        if (e.notre) {
+          poser("Défaut de l’application",
+            `Nous avons mal interrogé le service (${e.statut})`
+            + (e.dit ? ` : ${echapper(e.dit)}` : "") + "."
+            + "<br><br><b>Ce défaut est le nôtre, pas celui de votre réseau."
+            + " Signalez-le.</b>"
+            + "<br><br><b>Aucune absence d’alerte ne vaut autorisation.</b>",
+            "var(--interdit)");
+        } else {
+          poser("Données injoignables", "Réseau ou service indisponible"
+            + (e.statut ? ` (${e.statut})` : "") + "."
+            + "<br><br><b>Aucune absence d’alerte ne vaut autorisation.</b>",
+            "var(--incertain)");
+        }
+      }
+    },
+    (err) => poser("Position indisponible", echapper(err.message)
+      + ". <b>Aucune absence d’alerte ne vaut autorisation.</b>", "var(--incertain)"),
+    config.geolocalisation
+  );
+}
+
+function ouvrirProfil() {
+  construireChamps();
+  $("fenetre-profil").showModal();
+}
+
+$("fenetre-profil").addEventListener("close", () => {
+  if ($("fenetre-profil").returnValue !== "valider") return;
+  const lu = lireProfil();
+  if (!lu) {
+    poser("Profil incomplet", "Les champs obligatoires décident de l’évaluation : "
+      + "sans eux, aucune règle ne peut être tranchée.", "var(--incertain)");
+    return;
+  }
+  profil = lu;
+  localStorage.setItem(PROFIL_STOCKE, JSON.stringify(profil));
+  afficherGabarit();
+  if ($("suivre").getAttribute("aria-pressed") === "true") suivre(true);
+  else poser("Prêt", "Lancez le suivi pour évaluer votre trajectoire.", "");
+});
+
+$("suivre").onclick = () =>
+  suivre($("suivre").getAttribute("aria-pressed") !== "true");
+$("voix").onclick = () => {
+  const actif = $("voix").getAttribute("aria-pressed") !== "true";
+  $("voix").setAttribute("aria-pressed", String(actif));
+};
+$("profil").onclick = ouvrirProfil;
+
+/* ── amorçage ────────────────────────────────────────────────────────────────
+   L'attribution n'est pas une politesse : la Licence Ouverte l'exige, et la
+   date d'ingestion dit au conducteur de QUAND datent les règles qu'il voit. */
+(async function amorcer() {
+  try {
+    const r = await fetch(BASE + "/index.json");
+    if (!r.ok) throw new Error("réponse " + r.status);
+    const sante = await r.json();
+    config = sante.configuration_client;
+    tuiles = new Tuiles(BASE, sante);
+    $("source").innerHTML =
+      `${echapper(sante.source.libelle)} — ${echapper(sante.source.licence)}<br>`
+      + `${sante.regles} règles · ingérées le ${echapper(sante.source.ingere_le)}<br>`
+      + `empreinte ${echapper(String(sante.source.empreinte).slice(0, 16))}…`;
+    /* `sante.etat` et `sante.degradations` étaient ignorés : la page affichait
+       « Prêt » sur un service qui venait de déclarer qu'un de ses modules
+       manquait. Un service dégradé ne se lit pas dans les verdicts, il se lit
+       dans la santé — et c'est là qu'il faut le regarder. */
+    if (sante.etat && sante.etat !== "nominal") {
+      $("source").innerHTML +=
+        `<br><b>⚠ Service en mode « ${echapper(sante.etat)} »`
+        + (Array.isArray(sante.degradations) && sante.degradations.length
+            ? " : " + sante.degradations.map((d) =>
+                echapper(typeof d === "string" ? d : (d.pourquoi || d.quoi || "")))
+              .join(" · ")
+            : "") + "</b>";
+    }
+    const garde = localStorage.getItem(PROFIL_STOCKE);
+    if (garde) { profil = JSON.parse(garde); afficherGabarit(); }
+    poser(profil ? "Prêt" : "Gabarit à renseigner",
+          profil ? "Lancez le suivi pour évaluer votre trajectoire."
+                 : "Sans gabarit, aucune règle ne peut être évaluée.", "");
+    if (!profil) ouvrirProfil();
+  } catch (e) {
+    $("source").textContent = "Données injoignables.";
+    poser("Données injoignables",
+      "Cette page ne porte aucune règle en propre : elle les lit de "
+      + "<code>" + echapper(BASE) + "/index.json</code>. "
+      + "<b>Ne roulez pas en la croyant silencieuse — elle est muette.</b>",
+      "var(--interdit)");
+  }
+})();
+</script>
