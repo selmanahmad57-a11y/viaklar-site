@@ -2,6 +2,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0e14">
 <title>Viaklar — copilote</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
 
 <!--
   LE COPILOTE. Étape B du plan d'intégration : position, proximité d'une règle,
@@ -25,6 +27,8 @@
     s'oublie quand le véhicule quitte l'emprise. Dans le doute, on annonce.
   CONTRAINTE: un défaut de cette page ne s'affiche jamais comme une panne
     réseau. Un 4xx dit « nous avons mal demandé » et doit être bruyant.
+  CONTRAINTE: le bouton Noter ne demande jamais de CATÉGORIE — on ne classe
+    pas au bord de la route. Il relève ce qui est affiché, et rien d'autre.
 
   1. SUR-RESTREINDRE N'EST PAS PRUDENT. Une fausse interdiction est le mécanisme
      par lequel les vraies se font ignorer : un conducteur à qui l'on refuse une
@@ -146,6 +150,15 @@
   }
   .lever .quoi{color:var(--discret); font-size:.84rem}
 
+  /* LE BOUTON QUI REND LE TRAJET MESURABLE. Assez gros pour être touché sans
+     regarder, et d'une couleur qui n'est aucune de celles d'un verdict — il ne
+     dit rien de la route, il enregistre. */
+  #barre button.noter{
+    background:var(--declare); color:#fff; padding:.5rem 1.1rem;
+  }
+  #barre button.noter:active{background:#6d3ecc}
+  #journal{color:var(--discret); font-size:.8rem; margin-left:.4rem}
+
   #source{padding:.6rem 1.1rem 1rem; color:var(--discret); font-size:.75rem;
     border-top:1px solid var(--trait); line-height:1.45}
   #source a{color:var(--discret)}
@@ -163,10 +176,17 @@
   <button id="suivre" aria-pressed="false">Suivre ma position</button>
   <button id="voix" aria-pressed="false">Voix</button>
   <button id="profil">Gabarit</button>
+  <button id="noter" class="noter">Noter</button>
   <span id="gabarit">—</span>
 </div>
 
 <div id="enonces"></div>
+
+<div id="barre" style="border-top:0;padding-top:0">
+  <span id="journal">journal vide</span>
+  <button id="exporter" style="margin-left:auto">Exporter le journal</button>
+  <button id="vider">Vider</button>
+</div>
 
 <div id="source">Chargement…</div>
 
@@ -223,6 +243,7 @@ let profil = null;
 let veille = null;         // identifiant du watchPosition
 let annoncees = new Set();   // clés (règle, verdict) déjà dites
 let derniereReponse = null;   // pour réafficher après une déclaration
+let dernierePosition = null;  // celle qui a produit l'affichage courant
 
 /* ── ce que la page sait dire ────────────────────────────────────────────────
    LES LIBELLÉS viennent des données — `config.libelles_verdict`. LES COULEURS,
@@ -625,6 +646,7 @@ function annoncer(regle, libelle, oriente) {
 
 function suivre(actif) {
   $("suivre").setAttribute("aria-pressed", String(actif));
+  tenirLEcran(actif);
   if (!actif) {
     if (veille != null) navigator.geolocation.clearWatch(veille);
     veille = null;
@@ -635,7 +657,10 @@ function suivre(actif) {
   poser("Recherche de position…", "Le premier point peut prendre quelques secondes.", "");
   veille = navigator.geolocation.watchPosition(
     async (position) => {
-      try { rendre(derniereReponse = await interroger(position)); }
+      try {
+        dernierePosition = position;
+        rendre(derniereReponse = await interroger(position));
+      }
       catch (e) {
         if (e.notre) {
           poser("Défaut de l’application",
@@ -687,9 +712,137 @@ $("voix").onclick = () => {
 };
 $("profil").onclick = ouvrirProfil;
 
+/* ── ce qui rend un trajet mesurable ─────────────────────────────────────────
+
+   LA RÈGLE UN : ON NE CLASSE JAMAIS AU BORD DE LA ROUTE. Ce bouton ne demande
+   donc AUCUNE catégorie — il relève ce que l'application a déjà sous les yeux :
+   position, cap, heure, verdict affiché, règles visibles, profil déclaré.
+
+   La classification se fait à l'arrêt, sur les cinq catégories pré-inscrites
+   dans docs/verification-trajet.md. Demander « fausse alerte ou manquée ? » en
+   conduisant, ce serait faire classer sous l'effet de ce qu'on vient de voir —
+   et la catégorie choisie sur le moment justifie ce qu'on ressent au lieu de
+   décrire ce qui s'est produit.
+
+   Sans ce bouton, un trajet ne produit rien : le conducteur devrait relever à
+   la main ce que l'écran affiche déjà. */
+
+const JOURNAL = "viaklar.journal";
+
+function lireJournal() {
+  try { return JSON.parse(localStorage.getItem(JOURNAL)) || []; }
+  catch (e) { return []; }
+}
+
+function afficherJournal() {
+  const n = lireJournal().length;
+  $("journal").textContent = n ? `${n} observation(s)` : "journal vide";
+}
+
+function noter() {
+  const r = derniereReponse;
+  const entree = {
+    /* L'HORODATAGE ET LA POSITION VIENNENT DE LA DERNIÈRE RÉPONSE, pas d'une
+       nouvelle lecture : c'est CE QUE LE CONDUCTEUR A VU qu'on enregistre, pas
+       ce que le téléphone dirait une seconde plus tard. */
+    quand: new Date().toISOString(),
+    position: dernierePosition ? {
+      lon: dernierePosition.coords.longitude,
+      lat: dernierePosition.coords.latitude,
+      cap: dernierePosition.coords.heading,
+      vitesse_m_s: dernierePosition.coords.speed,
+      precision_m: dernierePosition.coords.accuracy,
+      horodatage_gps: new Date(dernierePosition.timestamp).toISOString(),
+    } : null,
+    verdict_affiche: r ? (r.verdict_d_ensemble || {}).valeur : null,
+    pourquoi_affiche: r ? (r.verdict_d_ensemble || {}).pourquoi : null,
+    distance_sondee_m: r ? r.distance_sondee_m : null,
+    orientee: r ? r.nature_de_la_distance == null : null,
+    regles: r ? (r.regles || []).map((x) => ({
+      reference: x.reference, intitule: x.intitule, voie: x.voie,
+      verdict: x.verdict, distance_m: x.distance_m, url: x.url,
+    })) : [],
+    ecartees: r ? (r.regles_ecartees || []).length : null,
+    profil,
+    voix: $("voix").getAttribute("aria-pressed") === "true",
+    /* NI CATÉGORIE NI JUGEMENT. Ce champ existe pour être rempli À L'ARRÊT,
+       depuis docs/verification-trajet.md, et il part vide exprès. */
+    categorie: null,
+    note: null,
+  };
+  const j = lireJournal();
+  j.push(entree);
+  localStorage.setItem(JOURNAL, JSON.stringify(j));
+  afficherJournal();
+  $("noter").textContent = "noté ✓";
+  setTimeout(() => { $("noter").textContent = "Noter"; }, 1200);
+}
+
+$("noter").onclick = noter;
+
+$("exporter").onclick = () => {
+  const j = lireJournal();
+  if (!j.length) { afficherJournal(); return; }
+  const paquet = {
+    pourquoi: "Journal d'un trajet d'essai. Les catégories sont VIDES : elles se "
+      + "remplissent à l'arrêt, depuis docs/verification-trajet.md, jamais au "
+      + "bord de la route.",
+    categories_admises: ["fausse_alerte", "manquee", "mal_ancree",
+                         "ambiguite_materielle", "defaut_application",
+                         "inclassable"],
+    a_noter_en_plus: ["kilometrage_parcouru", "reseau"],
+    source: config && config.enonces ? config.enonces.ou_verifier : null,
+    observations: j,
+  };
+  const url = URL.createObjectURL(
+    new Blob([JSON.stringify(paquet, null, 1)], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "trajet-" + new Date().toISOString().slice(0, 16).replace(/[:T]/g, "") + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+$("vider").onclick = () => {
+  if (!lireJournal().length) return;
+  if (!confirm("Vider le journal ? Exportez-le d'abord — il ne se retrouve pas."))
+    return;
+  localStorage.removeItem(JOURNAL);
+  afficherJournal();
+};
+
+/* L'ÉCRAN DOIT RESTER ALLUMÉ. Sans cela l'essai s'arrête au premier délai de
+   veille, et l'application se réveille en ayant perdu le fil de sa position —
+   c'est-à-dire au moment exact où elle devrait annoncer. */
+let veilleEcran = null;
+async function tenirLEcran(actif) {
+  try {
+    if (actif && "wakeLock" in navigator) {
+      veilleEcran = await navigator.wakeLock.request("screen");
+      veilleEcran.addEventListener("release", () => { veilleEcran = null; });
+    } else if (veilleEcran) {
+      await veilleEcran.release();
+      veilleEcran = null;
+    }
+  } catch (e) { /* refusé ou indisponible : l'essai reste possible, l'écran
+                   s'éteindra, et le conducteur le verra tout de suite */ }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible"
+      && $("suivre").getAttribute("aria-pressed") === "true") tenirLEcran(true);
+});
+
 /* ── amorçage ────────────────────────────────────────────────────────────────
    L'attribution n'est pas une politesse : la Licence Ouverte l'exige, et la
    date d'ingestion dit au conducteur de QUAND datent les règles qu'il voit. */
+/* HORS RÉSEAU. Une zone blanche est précisément l'endroit où le conducteur est
+   seul, et c'est là qu'une page qui télécharge ses données se tait. */
+if ("serviceWorker" in navigator)
+  navigator.serviceWorker.register("service-worker.js").catch(() => {
+    /* refusé : l'application marche encore, mais seulement avec du réseau —
+       et la page le dira à la première tuile manquante */
+  });
+
 (async function amorcer() {
   try {
     const r = await fetch(BASE + "/index.json");
@@ -742,6 +895,7 @@ $("profil").onclick = ouvrirProfil;
         </div>`;
     }
 
+    afficherJournal();
     const garde = localStorage.getItem(PROFIL_STOCKE);
     if (garde) { profil = JSON.parse(garde); afficherGabarit(); }
     poser(profil ? "Prêt" : "Gabarit à renseigner",

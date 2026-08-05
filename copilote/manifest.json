@@ -1,0 +1,20 @@
+{
+  "name": "Viaklar — copilote",
+  "short_name": "Viaklar",
+  "description": "Les arrêtés de circulation applicables à votre poids lourd, là où vous êtes. Ne remplace aucun panneau.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
