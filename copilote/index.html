@@ -166,7 +166,26 @@
   <span id="gabarit">—</span>
 </div>
 
+<div id="enonces"></div>
+
 <div id="source">Chargement…</div>
+
+<noscript>
+  <div class="regle" style="border-left-color:var(--interdit);margin:1.1rem">
+    <b>Cette page rend tout par script — sans lui, elle ne dit rien.</b>
+    <div class="pourquoi">
+      Ses énoncés, ses réserves, sa date de fraîcheur et son attribution sont
+      publiés dans <a href="index.json">index.json</a>, qui se récupère sans
+      exécuter quoi que ce soit. C'est ce qui rend un contrôle extérieur
+      possible : une application qui rend tout par script n'a aucun témoin
+      joignable, et son silence se lit comme une conformité.
+      <br><br>
+      Les énoncés du projet, hors application :
+      <a href="https://viaklar.com/enonces-autorises.md">enonces-autorises.md</a>,
+      <a href="https://viaklar.com/retractations.json">retractations.json</a>.
+    </div>
+  </div>
+</noscript>
 
 <dialog id="fenetre-profil">
   <form method="dialog">
@@ -695,6 +714,34 @@ $("profil").onclick = ouvrirProfil;
               .join(" · ")
             : "") + "</b>";
     }
+    /* LES ÉNONCÉS VIENNENT DES DONNÉES, PAS DE LA PAGE. Une seule écriture :
+       ce que le conducteur lit ici est exactement ce qu'un tiers récupère dans
+       index.json, sans exécuter de script. C'est ce qui redonne au copilote le
+       témoin extérieur que toute page rendue par script perd. */
+    const e = config.enonces;
+    if (e) {
+      const jours = (Date.now() - Date.parse(sante.genere_le)) / 86400000;
+      const perime = jours > (e.fraicheur || {}).seuil_d_alerte_jours;
+      $("enonces").innerHTML = `
+        <div class="regle" style="border-left-color:var(--incertain)">
+          <b>Ce que ce copilote ne dit pas</b>
+          <div class="pourquoi">
+            ${(e.ce_que_ce_copilote_ne_dit_pas || []).map(
+                (x) => "· " + echapper(x)).join("<br>")}
+            <br><br><b>${echapper(e.le_silence)}</b>
+            <br><br>${echapper(e.sur_restreindre_n_est_pas_prudent)}
+            <br><br>Règles ingérées le
+            <b>${echapper(String(sante.source.ingere_le).slice(0, 10))}</b>,
+            il y a ${Math.round(jours)} jour(s).${perime
+              ? ` <b style="color:var(--interdit)">${
+                  echapper((e.fraicheur || {}).que_faire_si_perimee || "")}</b>`
+              : ""}
+            <br><br>Vérifiable sans exécuter cette page :
+            <a href="index.json">index.json</a>.
+          </div>
+        </div>`;
+    }
+
     const garde = localStorage.getItem(PROFIL_STOCKE);
     if (garde) { profil = JSON.parse(garde); afficherGabarit(); }
     poser(profil ? "Prêt" : "Gabarit à renseigner",
